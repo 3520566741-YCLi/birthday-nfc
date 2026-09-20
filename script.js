@@ -73,12 +73,12 @@ const CONFIG = {
     buttonLabel: "Play our song",
     note: "Tap play when you're ready.",
     /*
-      Paste ONE of these three. Leave all empty to hide the music section.
+      Paste ONE of these two. Leave both empty and the music section stays hidden.
 
-      embedUrl : Spotify / Apple Music / YouTube / SoundCloud embed ("embed" URL,
-                 not the normal share link). Shown in a lazy-loaded iframe.
+      embedUrl : Spotify / Apple Music / YouTube / SoundCloud — the *embed* URL,
+                 not the normal share link. Shown in an iframe, loaded on tap.
       audioFile: a local file, e.g. "assets/song.mp3" — played by the native
-                 <audio> control. Best choice if you have the file.
+                 <audio> control. Best choice if you actually have the file.
     */
     embedUrl: "",
     audioFile: "",

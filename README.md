@@ -78,6 +78,25 @@ python3 -m http.server 8080
 To check the phone layout on a desktop browser, set the responsive viewport to
 **390 × 844** (iPhone 14 Pro).
 
+### Already unlocked yourself?
+
+The page remembers an unlock in `localStorage`, so once you have opened the gift on a
+device it stays open there. Append **`?forget=1`** to the URL to lock it again:
+
+```
+https://<username>.github.io/<repo>/?forget=1
+```
+
+That is also the quickest way to re-test the lock screen on your own iPhone. To make
+the page ask every single time instead, set `rememberUnlock: false` in `script.js`.
+
+### Seeing a stale version?
+
+GitHub Pages sends `Cache-Control: max-age=600`, so an already-open page can hold the
+previous `script.js` for up to ten minutes. If an edit does not show up, append any
+throwaway query string (`?v=2`) or hard-reload. A first-time visitor — which is what
+the recipient will be — always gets the current files.
+
 ## 4. Deploying
 
 The project is designed for GitHub Pages:
