@@ -104,9 +104,12 @@ const CONFIG = {
   },
 
   /* --- 10. Behaviour ---------------------------------------------------- */
-  /* true  = reopening the link inside the same browser stays unlocked.
-     false = ask for the date every single time.                            */
-  rememberUnlock: true,
+  /* false = ask for the date on every load, on every device, every time.
+     true  = reopening the link in the same browser stays unlocked.
+
+     This only affects whether the lock screen is shown again. It does not make
+     the code any more secret: the password is in this file either way.        */
+  rememberUnlock: false,
   confetti: true,                   // small celebration burst on unlock
   confettiCount: 34,
 };
@@ -534,8 +537,12 @@ const CONFIG = {
     mountEgg();
     wireGate();
 
-    if (CONFIG.rememberUnlock && storageGet(STORAGE_KEY) === "1") {
-      unlock({ animate: false });
+    if (CONFIG.rememberUnlock) {
+      if (storageGet(STORAGE_KEY) === "1") unlock({ animate: false });
+    } else {
+      /* Off: clear anything a device stored back when it was on, so no device
+         keeps a stale unlock. */
+      storageRemove(STORAGE_KEY);
     }
   }
 

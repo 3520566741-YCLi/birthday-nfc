@@ -80,15 +80,19 @@ To check the phone layout on a desktop browser, set the responsive viewport to
 
 ### Already unlocked yourself?
 
-The page remembers an unlock in `localStorage`, so once you have opened the gift on a
-device it stays open there. Append **`?forget=1`** to the URL to lock it again:
+By default the page asks for the date **every time, on every device** — the shipping
+setting is `rememberUnlock: false`. Nothing is remembered, so there is nothing to
+reset before handing the gift over.
+
+If you ever switch `rememberUnlock` to `true` (so a device that has unlocked once
+stays unlocked), append **`?forget=1`** to the URL to lock it again:
 
 ```
 https://<username>.github.io/<repo>/?forget=1
 ```
 
-That is also the quickest way to re-test the lock screen on your own iPhone. To make
-the page ask every single time instead, set `rememberUnlock: false` in `script.js`.
+Switching the setting back to `false` also clears any stored unlock the next time
+each device loads the page.
 
 ### Seeing a stale version?
 
