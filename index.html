@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#fff7f1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="A little surprise.">
+<!-- Favicon is inline (no external request, no extra file). -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E">
+<title>A little surprise</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="ambient" aria-hidden="true">
+    <span class="orb orb--1"></span>
+    <span class="orb orb--2"></span>
+    <span class="orb orb--3"></span>
+  </div>
+
+  <!-- Fired only on unlock. JS checks prefers-reduced-motion before creating anything. -->
+  <div id="confetti" class="confetti" aria-hidden="true"></div>
+
+  <main class="stage">
+
+    <!-- ============ The unlocked gift (hidden until the password matches) ============ -->
+    <section id="gift" class="gift" aria-labelledby="giftTitle" hidden>
+
+      <header class="gift__head">
+        <p class="gift__kicker">🎁</p>
+        <h1 id="giftTitle" class="gift__title"></h1>
+        <p class="gift__sub" data-cfg="gift.subtitle"></p>
+      </header>
+
+      <!-- Main photo -->
+      <figure id="photoBlock" class="photo" hidden>
+        <div class="photo__frame">
+          <img id="mainPhoto" class="photo__img" alt="" loading="eager" decoding="async">
+        </div>
+        <figcaption id="mainPhotoCaption" class="photo__caption"></figcaption>
+      </figure>
+
+      <!-- Birthday letter -->
+      <article id="messageBlock" class="letter">
+        <div id="messageBody" class="letter__body"></div>
+        <p class="letter__sign">
+          <span class="letter__dash">—</span>
+          <span id="senderName"></span>
+        </p>
+      </article>
+
+      <!-- Music -->
+      <div id="musicBlock" class="block" hidden>
+        <button id="musicBtn" class="pill" type="button" aria-expanded="false" aria-controls="musicPanel">
+          <span class="pill__icon" aria-hidden="true">🎵</span>
+          <span class="pill__label" data-cfg="music.buttonLabel"></span>
+        </button>
+        <div id="musicPanel" class="panel" hidden>
+          <div id="musicEmbed" class="embed" hidden></div>
+          <audio id="musicAudio" class="audio" controls playsinline preload="none" hidden></audio>
+          <p id="musicNote" class="panel__note" data-cfg="music.note" hidden></p>
+        </div>
+      </div>
+
+      <!-- Photo gallery -->
+      <div id="galleryBlock" class="block" hidden>
+        <h2 class="block__title" data-cfg="gallery.title"></h2>
+        <ul id="galleryList" class="gallery"></ul>
+      </div>
+
+      <!-- Hidden video -->
+      <div id="videoBlock" class="block" hidden>
+        <button id="videoBtn" class="pill" type="button" aria-expanded="false" aria-controls="videoPanel">
+          <span class="pill__icon" aria-hidden="true">🎬</span>
+          <span class="pill__label" data-cfg="video.buttonLabel"></span>
+        </button>
+        <div id="videoPanel" class="panel" hidden>
+          <div id="videoEmbed" class="embed embed--video" hidden></div>
+          <video id="videoFile" class="video" controls playsinline preload="none" hidden></video>
+        </div>
+      </div>
+
+      <!-- Easter egg -->
+      <div id="eggBlock" class="block" hidden>
+        <button id="eggBtn" class="pill pill--ghost" type="button" aria-expanded="false" aria-controls="eggPanel">
+          <span class="pill__icon" aria-hidden="true">🥚</span>
+          <span class="pill__label" data-cfg="egg.buttonLabel"></span>
+        </button>
+        <div id="eggPanel" class="panel panel--egg" hidden>
+          <h2 id="eggTitle" class="block__title"></h2>
+          <div id="eggBody" class="letter__body letter__body--small"></div>
+        </div>
+      </div>
+
+      <p class="footnote">🎂</p>
+    </section>
+
+    <!-- ============ The lock screen ============ -->
+    <section id="gate" class="gate" aria-labelledby="gateTitle">
+      <div class="gate__inner">
+        <div class="gate__icon" aria-hidden="true">🎁</div>
+        <h1 id="gateTitle" class="gate__title" data-cfg="gate.title"></h1>
+        <p class="gate__sub" data-cfg="gate.subtitle"></p>
+
+        <form id="gateForm" class="gate__form" autocomplete="off" novalidate>
+          <label class="sr-only" for="birthdayInput" data-cfg-aria="gate.inputAriaLabel"></label>
+          <input
+            id="birthdayInput"
+            class="gate__input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="4"
+            enterkeyhint="go"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="MMDD"
+            aria-describedby="gateHint gateError">
+          <button id="gateSubmit" class="gate__btn" type="submit">
+            <span data-cfg="gate.buttonLabel"></span>
+          </button>
+        </form>
+
+        <p id="gateHint" class="gate__hint" data-cfg="gate.hint"></p>
+        <p id="gateError" class="gate__error" role="alert" aria-live="polite"></p>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
