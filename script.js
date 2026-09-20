@@ -16,7 +16,7 @@
 const CONFIG = {
 
   /* --- 1. The password: MMDD of the birthday. Change this one line. ------- */
-  birthdayPassword: "0920",
+  birthdayPassword: "1013",
 
   /* --- 2. Names ---------------------------------------------------------- */
   recipientName: "Friend",          // shown in the headline
