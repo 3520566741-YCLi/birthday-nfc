@@ -173,3 +173,25 @@ secure" — keep sensitive material out of the project instead.
 
 Free to host on GitHub Pages indefinitely. Static files only, so nothing to patch or
 upgrade. Editing the birthday message later is a one-line change plus a push.
+
+### Keeping a copy
+
+GitHub is the publishing channel, not the only place this should exist. Nothing on
+GitHub can stop a repository from being deleted — repository rulesets only cover
+`branch`, `tag` and `push`, not the repository itself — so the real protection is a
+copy somewhere else.
+
+```bash
+# a snapshot of the files, with history, as one restorable file
+git bundle create ~/Desktop/birthday-nfc.bundle --all
+
+# or just a plain zip of the tracked files
+git archive --format=zip -o ~/Desktop/birthday-nfc.zip HEAD
+```
+
+Restore the bundle anywhere with `git clone birthday-nfc.bundle birthday-nfc`.
+The `do-not-delete` topic on the repository is only a label for a human reader; it
+has no enforcement power. **Archiving** the repository in Settings is the strongest
+thing GitHub offers — it makes the repository read-only, so you must unarchive before
+you can delete it — but it also blocks future pushes, so do that only once you are
+finished editing the birthday message.
