@@ -154,6 +154,9 @@ const CONFIG = {
   function storageSet(key, value) {
     try { window.localStorage.setItem(key, value); } catch (e) { /* ignore */ }
   }
+  function storageRemove(key) {
+    try { window.localStorage.removeItem(key); } catch (e) { /* ignore */ }
+  }
 
   function fill(text) {
     return String(text == null ? "" : text).replace(/\{name\}/g, CONFIG.recipientName);
@@ -518,6 +521,12 @@ const CONFIG = {
 
   /* --- boot -------------------------------------------------------------- */
   function boot() {
+    /* Opening the page with ?forget=1 locks it again. Handy when you want to
+       re-check the lock screen on a device that already unlocked itself. */
+    if (new URLSearchParams(location.search).get("forget") === "1") {
+      storageRemove(STORAGE_KEY);
+    }
+
     applyDataConfig();
     mountGift();
     mountMusic();
