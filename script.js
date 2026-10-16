@@ -47,7 +47,7 @@ const CONFIG = {
 
   /* --- 5. One main photo (optional) ------------------------------------- */
   photo: {
-    enabled: true,                  // set false to hide forever
+    enabled: false,                 // set true to show assets/photo.jpg
     src: "assets/photo.jpg",        // ← drop your photo here
     fallback: ["assets/photo.jpeg", "assets/photo.png", "assets/photo.webp"],
     caption: "",                    // optional line under the photo
@@ -56,7 +56,7 @@ const CONFIG = {
 
   /* --- 6. Photo gallery (optional) -------------------------------------- */
   gallery: {
-    enabled: true,
+    enabled: false,                 // set true to show the gallery
     title: "Moments",
     // Each item: { src, alt }. Any that fail to load are skipped.
     photos: [
@@ -69,7 +69,7 @@ const CONFIG = {
 
   /* --- 7. Music (optional, never autoplays — Safari blocks that) -------- */
   music: {
-    enabled: true,
+    enabled: false,                 // set true, then fill embedUrl or audioFile
     buttonLabel: "Play our song",
     note: "Tap play when you're ready.",
     /*
@@ -86,7 +86,7 @@ const CONFIG = {
 
   /* --- 8. Video (optional, collapsed by default) ------------------------ */
   video: {
-    enabled: true,
+    enabled: false,                 // set true, then fill embedUrl or videoFile
     buttonLabel: "There's a video too",
     embedUrl: "",                   // YouTube embed URL, or leave empty
     videoFile: "",                  // e.g. "assets/video.mp4"

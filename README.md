@@ -39,6 +39,10 @@ hidden. Without WebGL the same surfaces fall back to CSS backdrop blur. Reduced
 motion freezes the field; reduced transparency, increased contrast and forced
 colours use opaque cards. No external assets or libraries are loaded.
 
+Headlines use Courgette (Sorkin Type, SIL Open Font License 1.1), self-hosted as
+`assets/fonts/Courgette-Regular.woff2` with its licence in `assets/fonts/Courgette-OFL.txt`.
+It has no Chinese glyphs, so Chinese text and all body copy use the system face.
+
 Check its lifecycle and fallback behavior with `node tests/glass.test.js`.
 
 ## 2. Configure it — one place only
