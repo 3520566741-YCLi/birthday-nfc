@@ -134,6 +134,8 @@ const CONFIG = {
     qrNote: "扫码回到这封信",
     thanks: "THANK YOU · 生日快乐",
     qr: "assets/receipt-qr.png",
+    barcode: "assets/receipt-barcode.png",
+    number: "No. HBD-20261013",
   },
 
   /* --- 10. Behaviour ---------------------------------------------------- */
@@ -673,15 +675,18 @@ const CONFIG = {
     var fonts = document.fonts && document.fonts.load
       ? Promise.all([document.fonts.load('18px "Ma Shan Zheng"'), document.fonts.load('28px "Zhi Mang Xing"'), document.fonts.load('20px "Courgette"')])
       : Promise.resolve();
-    var qr = new Promise(function (resolve) {
-      var img = new Image();
-      img.onload = function () { resolve(img); };
-      img.onerror = function () { resolve(null); };
-      img.src = cfg.qr;
-    });
+    function loadImage(src) {
+      return new Promise(function (resolve) {
+        if (!src) { resolve(null); return; }
+        var img = new Image();
+        img.onload = function () { resolve(img); };
+        img.onerror = function () { resolve(null); };
+        img.src = src;
+      });
+    }
 
-    return Promise.all([fonts, qr]).then(function (r) {
-      var qrImg = r[1];
+    return Promise.all([fonts, loadImage(cfg.qr), loadImage(cfg.barcode)]).then(function (r) {
+      var qrImg = r[1], barImg = r[2];
       var measure = document.createElement("canvas").getContext("2d");
 
       function wrap(text, font, width) {
@@ -748,11 +753,12 @@ const CONFIG = {
       dash();
       ops.push(["pair", fill(cfg.total[0]), fill(cfg.total[1]), mixedFonts(14, "700"), rose, y]); y += 10;
       dash();
-      var qrSize = 132, qrY = y;
+      var qrSize = 150, qrY = y + 4;
       if (qrImg) { ops.push(["qr", qrY, qrSize]); y += qrSize + 18; }
-      ops.push(["mixed", fill(cfg.qrNote), mixedFonts(12), soft, "center", y]); y += 22;
-      ops.push(["cake", y]); y += 44;
-      ops.push(["mixed", fill(cfg.thanks), mixedFonts(12), soft, "center", y]); y += 22;
+      ops.push(["mixed", fill(cfg.qrNote), mixedFonts(12), soft, "center", y]); y += 30;
+      ops.push(["mixed", fill(cfg.thanks), mixedFonts(12), soft, "center", y]); y += 30;
+      if (barImg) { ops.push(["bar", y, W - PAD * 2, 46]); y += 52; }
+      if (cfg.number) { ops.push(["mixed", fill(cfg.number), mixedFonts(10), soft, "center", y]); y += 16; }
       var H = y + 30;
 
       var canvas = document.createElement("canvas");
@@ -792,6 +798,10 @@ const CONFIG = {
         } else if (op[0] === "qr") {
           ctx.imageSmoothingEnabled = true;
           ctx.drawImage(qrImg, (W - op[2]) / 2, op[1], op[2], op[2]);
+        } else if (op[0] === "bar") {
+          ctx.imageSmoothingEnabled = false;          // keep the bars crisp
+          ctx.drawImage(barImg, (W - op[2]) / 2, op[1], op[2], op[3]);
+          ctx.imageSmoothingEnabled = true;
         } else if (op[0] === "cake") {
           var cx = W / 2, cy = op[1];
           ctx.fillStyle = "#ffe3ec"; ctx.fillRect(cx - 22, cy + 18, 44, 16);
