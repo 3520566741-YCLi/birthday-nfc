@@ -111,7 +111,7 @@ button, input { font: inherit; color: inherit; }
   overflow: clip;                        /* clip, not hidden: never a scroll container */
   background:
     radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.55), transparent 60%),
-    linear-gradient(150deg, #e3e0ff, #f3dcf6 40%, #fbdced 68%, #ddf0ea);
+    linear-gradient(150deg, #e4dcff, #f0d8fb 40%, #fdd9e6 70%, #ffe0dc);
 }
 
 .orb {
@@ -121,9 +121,9 @@ button, input { font: inherit; color: inherit; }
   opacity: .62;
   animation: colourDrift 20s ease-in-out infinite alternate;
 }
-.orb--1 { width: 90vmax; height: 64vmax; top: -34vmax; left: -35vmax; background: #a7b4ff; }
-.orb--2 { width: 72vmax; height: 64vmax; top: 14vh; right: -38vmax; background: #f0a3d8; animation-delay: -8s; animation-duration: 24s; }
-.orb--3 { width: 80vmax; height: 64vmax; bottom: -30vmax; left: -28vmax; background: #ff9fc8; animation-delay: -14s; animation-duration: 22s; }
+.orb--1 { width: 90vmax; height: 64vmax; top: -34vmax; left: -35vmax; background: #b39cff; }
+.orb--2 { width: 72vmax; height: 64vmax; top: 14vh; right: -38vmax; background: #d79bf5; animation-delay: -8s; animation-duration: 24s; }
+.orb--3 { width: 80vmax; height: 64vmax; bottom: -30vmax; left: -28vmax; background: #ffa3b4; animation-delay: -14s; animation-duration: 22s; }
 
 /* 4 · Glass surfaces ------------------------------------------------------- */
 .glass {

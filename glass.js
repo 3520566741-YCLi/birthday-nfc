@@ -98,16 +98,16 @@
       q += .085 * vec2(sin(q.y * 4.1 - t * 1.9 + q.x), cos(q.x * 3.7 + t * 1.6 - q.y));
 
       // Pigments are averaged by weight, so overlaps blend like dye, not paint.
-      vec3 acc = vec3(.990, .950, .975) * .16;
+      vec3 acc = vec3(.985, .945, .975) * .16;
       float sum = .16;
-      pigment(acc, sum, q, vec3(.56, .70, 1.0),  vec2(-.58 + .34 * sin(t * .9),       -.55 + .30 * cos(t * .7)),       1.75, .85);  // blue
-      pigment(acc, sum, q, vec3(.78, .58, 1.0),  vec2( .55 + .32 * cos(t * .8 + 1.),  -.25 + .36 * sin(t * .6 + 2.)),  1.70, .9);   // orchid violet
-      pigment(acc, sum, q, vec3(1.0, .58, .80),  vec2(-.30 + .40 * cos(t * .65 + 2.5), .22 + .36 * sin(t * .85)),      1.30, 1.35); // pink
-      pigment(acc, sum, q, vec3(.50, .88, .79),  vec2( .50 + .30 * sin(t * .75 + 4.),  .62 + .34 * cos(t * .55 + 1.)), 1.80, .8);   // mint
-      pigment(acc, sum, q, vec3(1.0, .70, .86),  vec2( .10 + .42 * sin(t * .5 + 3.),  -.98 + .22 * cos(t * .9)),       1.55, 1.1);  // blush, top
-      pigment(acc, sum, q, vec3(1.0, .66, .84),  vec2( .62 + .26 * cos(t * .45 + 5.), -.80 + .28 * sin(t * .7 + 3.)),  1.75, 1.1);  // rose, upper right
-      pigment(acc, sum, q, vec3(.98, .62, .86),  vec2(-.62 + .28 * sin(t * .55 + 1.5), .80 + .24 * cos(t * .65)),      1.70, 1.);   // pink, lower left
-      pigment(acc, sum, q, mix(vec3(.88, .66, 1.0), vec3(1.0, .76, .66), u_warm),
+      pigment(acc, sum, q, vec3(.66, .60, 1.0),  vec2(-.58 + .34 * sin(t * .9),       -.55 + .30 * cos(t * .7)),       1.70, .95);  // periwinkle violet
+      pigment(acc, sum, q, vec3(.74, .52, .98),  vec2( .55 + .32 * cos(t * .8 + 1.),  -.25 + .36 * sin(t * .6 + 2.)),  1.60, 1.1);  // purple
+      pigment(acc, sum, q, vec3(1.0, .62, .74),  vec2(-.30 + .40 * cos(t * .65 + 2.5), .22 + .36 * sin(t * .85)),      1.30, 1.3);  // warm pink
+      pigment(acc, sum, q, vec3(.86, .60, 1.0),  vec2( .50 + .30 * sin(t * .75 + 4.),  .62 + .34 * cos(t * .55 + 1.)), 1.70, 1.);   // orchid
+      pigment(acc, sum, q, vec3(1.0, .72, .80),  vec2( .10 + .42 * sin(t * .5 + 3.),  -.98 + .22 * cos(t * .9)),       1.55, 1.05); // blush, top
+      pigment(acc, sum, q, vec3(.80, .64, 1.0),  vec2( .62 + .26 * cos(t * .45 + 5.), -.80 + .28 * sin(t * .7 + 3.)),  1.75, 1.);   // lavender, upper right
+      pigment(acc, sum, q, vec3(1.0, .66, .70),  vec2(-.62 + .28 * sin(t * .55 + 1.5), .80 + .24 * cos(t * .65)),      1.70, 1.05); // coral pink, lower left
+      pigment(acc, sum, q, mix(vec3(.90, .68, 1.0), vec3(1.0, .76, .68), u_warm),
                                                  vec2( .05 + .30 * cos(t * .7),  -.05 + .40 * sin(t * .5 + 1.)),  2.30 - .70 * u_warm, .7 + .6 * u_warm); // lilac → peach
       vec3 colour = acc / sum;
 
