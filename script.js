@@ -121,6 +121,7 @@ const CONFIG = {
     closeLabel: "关闭",
     saveHint: "也可以长按图片保存",
     title: "BIRTHDAY RECEIPT",
+    date: "2026.10.13",
     to: "郑榕琪",
     items: [                         // [what, how many]
       ["新的一岁", "×1"],
@@ -695,6 +696,29 @@ const CONFIG = {
         return lines;
       }
 
+      // Receipt lines mix English/digits (monospace) with Chinese (brush face).
+      var CJK = /[\u2e80-\u9fff\u3000-\u303f\uff00-\uffef]/;
+      function runs(str) {
+        var out = [], cur = "", isC = null;
+        Array.from(str).forEach(function (ch) {
+          var c = CJK.test(ch);
+          if (isC !== null && c !== isC) { out.push([cur, isC]); cur = ""; }
+          cur += ch; isC = c;
+        });
+        if (cur) out.push([cur, isC]);
+        return out;
+      }
+      function mixedFonts(size, weight) {
+        return { latin: (weight || "") + " " + size + "px " + mono, han: (size + 2) + "px " + hand };
+      }
+      function drawMixed(ctx2, str, f, x, y, align) {
+        var parts = runs(str), width = 0;
+        parts.forEach(function (r) { ctx2.font = r[1] ? f.han : f.latin; r.w = ctx2.measureText(r[0]).width; width += r.w; });
+        var sx = align === "center" ? x - width / 2 : align === "right" ? x - width : x;
+        ctx2.textAlign = "left";
+        parts.forEach(function (r) { ctx2.font = r[1] ? f.han : f.latin; ctx2.fillText(r[0], sx, r[1] ? y - 1 : y); sx += r.w; });
+      }
+
       // Lay everything out first, then draw at that height.
       var ops = [], y = 36;
       function text(t, font, color, align, lh) { ops.push(["text", t, font, color, align, y]); y += lh; }
@@ -703,10 +727,10 @@ const CONFIG = {
 
       text(cfg.title, "700 15px " + mono, ink, "center", 26);
       text("Happy Birthday", '24px "Courgette", cursive', ink, "center", 30);
-      text(fill(CONFIG.date || ""), "12px " + mono, soft, "center", 6);
+      ops.push(["mixed", fill(cfg.date || CONFIG.date || ""), mixedFonts(12), soft, "center", y]); y += 6;
       dash();
-      text("TO   " + fill(cfg.to), "13px " + mono, ink, "left", 22);
-      text("FROM " + fill(CONFIG.senderName), "13px " + mono, ink, "left", 4);
+      ops.push(["mixed", "TO   " + fill(cfg.to), mixedFonts(13), ink, "left", y]); y += 24;
+      ops.push(["mixed", "FROM " + fill(CONFIG.senderName), mixedFonts(13), ink, "left", y]); y += 18;
       dash();
       var body = '17px ' + hand;
       var paras = (CONFIG.greeting ? [CONFIG.greeting] : []).concat(CONFIG.message || []);
@@ -719,16 +743,16 @@ const CONFIG = {
       text("— " + fill(CONFIG.senderName), "26px " + sign, ink, "right", 34);
       dash();
       (cfg.items || []).forEach(function (it) {
-        ops.push(["pair", fill(it[0]), it[1], "13px " + mono, ink, y]); y += 22;
+        ops.push(["pair", fill(it[0]), it[1], mixedFonts(13), ink, y]); y += 24;
       });
       dash();
-      ops.push(["pair", fill(cfg.total[0]), fill(cfg.total[1]), "700 14px " + mono, rose, y]); y += 8;
+      ops.push(["pair", fill(cfg.total[0]), fill(cfg.total[1]), mixedFonts(14, "700"), rose, y]); y += 10;
       dash();
       var qrSize = 132, qrY = y;
       if (qrImg) { ops.push(["qr", qrY, qrSize]); y += qrSize + 18; }
-      text(fill(cfg.qrNote), "12px " + mono, soft, "center", 22);
+      ops.push(["mixed", fill(cfg.qrNote), mixedFonts(12), soft, "center", y]); y += 22;
       ops.push(["cake", y]); y += 44;
-      text(fill(cfg.thanks), "12px " + mono, soft, "center", 22);
+      ops.push(["mixed", fill(cfg.thanks), mixedFonts(12), soft, "center", y]); y += 22;
       var H = y + 30;
 
       var canvas = document.createElement("canvas");
@@ -758,9 +782,13 @@ const CONFIG = {
           ctx.strokeStyle = "rgba(90, 70, 110, .35)"; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
           ctx.beginPath(); ctx.moveTo(PAD, op[1]); ctx.lineTo(W - PAD, op[1]); ctx.stroke(); ctx.setLineDash([]);
         } else if (op[0] === "pair") {
-          ctx.font = op[3]; ctx.fillStyle = op[4]; ctx.textBaseline = "top";
-          ctx.textAlign = "left"; ctx.fillText(op[1], PAD, op[5]);
-          ctx.textAlign = "right"; ctx.fillText(op[2], W - PAD, op[5]);
+          ctx.fillStyle = op[4]; ctx.textBaseline = "top";
+          drawMixed(ctx, op[1], op[3], PAD, op[5], "left");
+          drawMixed(ctx, op[2], op[3], W - PAD, op[5], "right");
+        } else if (op[0] === "mixed") {
+          ctx.fillStyle = op[3]; ctx.textBaseline = "top";
+          var mx = op[4] === "center" ? W / 2 : op[4] === "right" ? W - PAD : PAD;
+          drawMixed(ctx, op[1], op[2], mx, op[5], op[4]);
         } else if (op[0] === "qr") {
           ctx.imageSmoothingEnabled = true;
           ctx.drawImage(qrImg, (W - op[2]) / 2, op[1], op[2], op[2]);
@@ -993,7 +1021,7 @@ const CONFIG = {
     var fold = null, top = null, shade = null, page = null;
     var s = 1, x0 = 0, yIn = 0, yOut = 0;
     var p = 0;                        // 0 = sealed, 0.5 = flap fully open, 1 = letter fully out
-    var drag = null, frame = 0, openedSound = false, slideSound = false;
+    var drag = null, frame = 0, openedSound = false, slideSound = false, moved = false;
     var RANGE = Math.max(220, Math.min(window.innerHeight * 0.34, 340));   // swipe length for 0 → 1
 
     stage.hidden = false;
@@ -1095,27 +1123,40 @@ const CONFIG = {
       sfx.wake();
       buildFold();
       state = "dragging";
-      drag = { y0: e.clientY, p0: p, samples: [[e.timeStamp, e.clientY]] };
+      moved = false;
+      drag = { y0: e.clientY, p0: p, target: p, samples: [[e.timeStamp, e.clientY]] };
       try { (e.target.setPointerCapture ? e.target : stage).setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      if (!frame) frame = requestAnimationFrame(follow);
+    }
+
+    /* Each frame, move a good part of the way towards the finger: it stays
+       attached to the touch but sensor jitter is smoothed out. */
+    function follow() {
+      frame = 0;
+      if (!drag) return;
+      var next = p + (Math.max(drag.target, 0) - p) * 0.5;
+      if (Math.abs(next - p) > 0.0005) { p = next; render(); }
+      frame = requestAnimationFrame(follow);
     }
 
     function onMove(e) {
       if (!drag) return;
-      var next = drag.p0 + (drag.y0 - e.clientY) / RANGE;            // up = open, down = close
+      var dy = drag.y0 - e.clientY;
+      if (Math.abs(dy) > 6) moved = true;
+      var next = drag.p0 + dy / RANGE;                               // up = open, down = close
       if (next < 0) next = next * 0.15;                              // a little give below closed
       if (next > 1) next = 1 + (next - 1) * 0.2;
       drag.target = Math.max(Math.min(next, 1.05), -0.03);
       drag.samples.push([e.timeStamp, e.clientY]);
       if (drag.samples.length > 6) drag.samples.shift();
-      if (!frame) frame = requestAnimationFrame(function () {
-        frame = 0;
-        if (drag && drag.target !== undefined) { p = Math.max(drag.target, 0); render(); }
-      });
     }
 
     function onUp() {
       if (!drag) return;
       var d = drag; drag = null;
+      if (frame) { cancelAnimationFrame(frame); frame = 0; }
+      if (!moved) { state = "idle"; return; }                        // a press: the button handles it
+      p = Math.max(d.target, 0); render();
       var a = d.samples[0], b = d.samples[d.samples.length - 1];
       var v = (a[1] - b[1]) / Math.max(b[0] - a[0], 1);              // px/ms, upwards positive
       if (p > 0.5 || v > 0.6) finish(v);
@@ -1190,8 +1231,7 @@ const CONFIG = {
 
     function down(e) {
       if (stage.hidden) return;
-      if (e.target.closest && e.target.closest("#envelopeBtn")) return;
-      onDown(e);
+      onDown(e);                                   // anywhere on screen, the hint included
     }
     function cancel() {
       if (!drag) return;
@@ -1213,7 +1253,10 @@ const CONFIG = {
     }
     stage.addEventListener("envelope:done", cleanup);
 
-    button.addEventListener("click", function () { if (state === "idle") { sfx.wake(); finish(0); } });
+    button.addEventListener("click", function (e) {
+      if (moved) { moved = false; return; }        // that was a swipe, not a press
+      if (state === "idle") { sfx.wake(); finish(0); }
+    });
   }
 
   function revealGift(animate, opts) {

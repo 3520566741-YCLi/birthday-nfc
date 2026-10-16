@@ -60,13 +60,13 @@
    the message or the signature. Anything not in the subset uses the fallbacks. */
 @font-face {
   font-family: "Ma Shan Zheng";
-  src: url("assets/fonts/MaShanZheng-Regular.subset.woff2?v=9f95ab2f") format("woff2");
+  src: url("assets/fonts/MaShanZheng-Regular.subset.woff2?v=4786322a") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
   font-family: "Zhi Mang Xing";
-  src: url("assets/fonts/ZhiMangXing-Regular.subset.woff2?v=52760061") format("woff2");
+  src: url("assets/fonts/ZhiMangXing-Regular.subset.woff2?v=a064acb3") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
@@ -658,7 +658,6 @@ button, input { font: inherit; color: inherit; }
   height: calc(64% + .5px);
   z-index: 6;
   transform-origin: 50% 0;
-  filter: drop-shadow(0 2px 3px rgba(90, 50, 70, .16));
   pointer-events: none;
   will-change: transform;
 }

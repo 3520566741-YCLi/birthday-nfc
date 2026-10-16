@@ -403,8 +403,8 @@
 
     window.addEventListener("resize", resize, { passive: true });
     window.addEventListener("scroll", wake, { passive: true });
-    window.addEventListener("pointerdown", wake, { passive: true });
-    window.addEventListener("keydown", wake, { passive: true });
+    // Touches and keys don't move any glass, so they don't need full-rate frames
+    // (on phones that would compete with the envelope swipe for the GPU).
     if (window.visualViewport) window.visualViewport.addEventListener("resize", resize, { passive: true });
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) { cancelAnimationFrame(frame); frame = 0; }
