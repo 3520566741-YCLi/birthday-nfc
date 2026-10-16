@@ -12,7 +12,7 @@
 
 /* 1 · Tokens --------------------------------------------------------------- */
 :root {
-  --bg:          #e9e6f8;
+  --bg:          #f1e4f4;
   --ink:         #1a1e30;
   --ink-soft:    #353b54;
   --ink-faint:   #3e445d;
@@ -111,7 +111,7 @@ button, input { font: inherit; color: inherit; }
   overflow: clip;                        /* clip, not hidden: never a scroll container */
   background:
     radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.55), transparent 60%),
-    linear-gradient(150deg, #d7e3ff, #e7defb 46%, #f6e2ef 72%, #d9f2ea);
+    linear-gradient(150deg, #e3e0ff, #f3dcf6 40%, #fbdced 68%, #ddf0ea);
 }
 
 .orb {
@@ -119,11 +119,11 @@ button, input { font: inherit; color: inherit; }
   border-radius: 50%;
   filter: blur(60px);
   opacity: .62;
-  animation: colourDrift 32s ease-in-out infinite alternate;
+  animation: colourDrift 20s ease-in-out infinite alternate;
 }
-.orb--1 { width: 90vmax; height: 64vmax; top: -34vmax; left: -35vmax; background: #86acff; }
-.orb--2 { width: 72vmax; height: 64vmax; top: 14vh; right: -38vmax; background: #ab97ff; animation-delay: -12s; animation-duration: 38s; }
-.orb--3 { width: 80vmax; height: 64vmax; bottom: -30vmax; left: -28vmax; background: #fba4d2; animation-delay: -20s; animation-duration: 35s; }
+.orb--1 { width: 90vmax; height: 64vmax; top: -34vmax; left: -35vmax; background: #a7b4ff; }
+.orb--2 { width: 72vmax; height: 64vmax; top: 14vh; right: -38vmax; background: #f0a3d8; animation-delay: -8s; animation-duration: 24s; }
+.orb--3 { width: 80vmax; height: 64vmax; bottom: -30vmax; left: -28vmax; background: #ff9fc8; animation-delay: -14s; animation-duration: 22s; }
 
 /* 4 · Glass surfaces ------------------------------------------------------- */
 .glass {
