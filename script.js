@@ -496,18 +496,32 @@ const CONFIG = {
       r.start(t + 0.03); r.stop(t + 0.4);
     }
 
+    /* A music-box tine: a pure tone with a bright inharmonic "ping" on top. */
+    function tine(c, dest, f, t, peak, decay) {
+      [[1, peak], [4.02, peak * 0.16], [6.7, peak * 0.05]].forEach(function (partial, i) {
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = "sine";
+        o.frequency.value = f * partial[0];
+        envelope(c, g, t, partial[1], 0.002, decay / (i + 1));
+        o.connect(g); g.connect(dest);
+        o.start(t); o.stop(t + decay + 0.05);
+      });
+    }
+
+    function sparkleVoice(c, dest, t) {
+      var notes = [2093, 2349.3, 2637, 3136, 3520];          // high C-pentatonic glitter
+      for (var i = 0; i < 9; i++) {
+        tine(c, panner(c, dest, Math.random() * 1.6 - 0.8),
+             notes[(Math.random() * notes.length) | 0], t + Math.random() * 0.45, 0.022, 0.35);
+      }
+    }
+
     function chimeVoice(c, dest, t) {
-      // a warm major arpeggio, like a small music box: E5 G#5 B5 E6
-      [659.25, 830.61, 987.77, 1318.51].forEach(function (f, i) {
-        var at = t + i * 0.09;
-        [[1, 0.09], [2.01, 0.025], [3.0, 0.012]].forEach(function (partial) {
-          var o = c.createOscillator(), g = c.createGain();
-          o.type = "sine";
-          o.frequency.value = f * partial[0];
-          envelope(c, g, at, partial[1], 0.006, 1.3 - i * 0.12);
-          o.connect(g); g.connect(dest);
-          o.start(at); o.stop(at + 1.5);
-        });
+      // Music box: the first line of "Happy Birthday to You" (public domain), G G A G C B.
+      var G = 783.99, A = 880, C = 1046.5, B = 987.77;
+      var beat = 0.36;
+      [[G, 0], [G, 0.75], [A, 1], [G, 2], [C, 3], [B, 4]].forEach(function (n, i) {
+        tine(c, dest, n[0], t + n[1] * beat, i === 5 ? 0.11 : 0.09, i === 5 ? 1.6 : 0.9);
       });
     }
 
@@ -534,11 +548,12 @@ const CONFIG = {
         try {
           // same order and stagger as the four confetti cannons
           [-0.8, 0.8, -0.8, 0.8].forEach(function (pan, k) { popVoice(c, master, t + k * 0.035 + 0.04, pan); });
-          chimeVoice(c, master, t + 0.32);
+          sparkleVoice(c, master, t + 0.12);
+          chimeVoice(c, master, t + 0.62);
         } catch (e) { /* ignore */ }
       },
       // for rendering a preview file; not used by the page
-      voices: { tap: tapVoice, wrong: wrongVoice, pop: popVoice, chime: chimeVoice },
+      voices: { tap: tapVoice, wrong: wrongVoice, pop: popVoice, sparkle: sparkleVoice, chime: chimeVoice },
     };
   })();
 
