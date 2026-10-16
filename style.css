@@ -31,6 +31,8 @@
   --lift:  0 1px 0 rgba(255, 255, 255, .55) inset;
 
   --font-script: "Courgette", "Snell Roundhand", "Brush Script MT", cursive;
+  --font-letter: "Ma Shan Zheng", "Kaiti SC", "STKaiti", "KaiTi", var(--font);
+  --font-sign:   "Zhi Mang Xing", "Xingkai SC", "STXingkai", "Kaiti SC", var(--font);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI",
           Roboto, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 
@@ -45,6 +47,22 @@
   src: url("assets/fonts/Courgette-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
+}
+
+/* Chinese faces, both SIL OFL 1.1 (licences in assets/fonts/). They are cut down
+   to the characters in CONFIG by tools/subset-fonts.py — run it after editing
+   the message or the signature. Anything not in the subset uses the fallbacks. */
+@font-face {
+  font-family: "Ma Shan Zheng";
+  src: url("assets/fonts/MaShanZheng-Regular.subset.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Zhi Mang Xing";
+  src: url("assets/fonts/ZhiMangXing-Regular.subset.woff2") format("woff2");
+  font-weight: 400;
   font-display: swap;
 }
 
@@ -388,19 +406,38 @@ button, input { font: inherit; color: inherit; }
   background: linear-gradient(90deg, transparent, rgba(60, 60, 110, .22) 30%, rgba(60, 60, 110, .22) 70%, transparent);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .45);
 }
-.letter__body { font-size: 17px; line-height: 1.95; color: var(--ink); }
+.letter__body {
+  font-family: var(--font-letter);
+  font-size: 19px;
+  line-height: 2;
+  letter-spacing: .02em;
+  font-synthesis: none;
+  color: var(--ink);
+}
 .letter__body p + p { margin-top: 18px; }
-.letter__body--small { font-size: 15.5px; color: var(--ink-soft); }
+.letter__body--small { font-size: 17px; color: var(--ink-soft); }
 
 .letter__sign {
-  margin-top: 24px;
+  margin-top: 22px;
   text-align: right;
-  font-size: 16px;
-  font-weight: 560;
-  letter-spacing: .04em;
+  font-family: var(--font-sign);
+  font-size: 30px;
+  line-height: 1.3;
+  font-weight: 400;
+  font-synthesis: none;
   color: var(--ink-soft);
 }
-.letter__dash { margin-right: 8px; color: var(--ink-faint); }
+.letter__date {
+  margin-top: 2px;
+  text-align: right;
+  font-family: var(--font-script);
+  font-size: 15px;
+  letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+.letter__date:empty { display: none; }
+.letter__dash { margin-right: 10px; font-size: 20px; vertical-align: .18em; color: var(--ink-faint); }
 
 /* Blocks (music · gallery · video · egg) */
 .block { margin-top: 26px; }

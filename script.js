@@ -21,6 +21,7 @@ const CONFIG = {
   /* --- 2. Names ---------------------------------------------------------- */
   recipientName: "Friend",          // shown in the headline
   senderName: "李雨宸",             // signature at the end of the letter
+  date: "2026.10",                  // small date under the signature (leave "" to hide)
 
   /* --- 3. Lock screen --------------------------------------------------- */
   gate: {

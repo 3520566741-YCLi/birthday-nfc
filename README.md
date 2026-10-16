@@ -41,7 +41,10 @@ colours use opaque cards. No external assets or libraries are loaded.
 
 Headlines use Courgette (Sorkin Type, SIL Open Font License 1.1), self-hosted as
 `assets/fonts/Courgette-Regular.woff2` with its licence in `assets/fonts/Courgette-OFL.txt`.
-It has no Chinese glyphs, so Chinese text and all body copy use the system face.
+It has no Chinese glyphs. The letter uses Ma Shan Zheng and the signature Zhi Mang Xing
+(both SIL OFL 1.1, licences in `assets/fonts/`), cut down to just the characters in
+`CONFIG`. **After changing the message or the signature, run `python3 tools/subset-fonts.py`**
+(needs `pip install fonttools brotli`), or new characters will show in the system font.
 
 Check its lifecycle and fallback behavior with `node tests/glass.test.js`.
 
