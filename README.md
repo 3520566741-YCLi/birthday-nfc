@@ -52,6 +52,11 @@ After the right code an envelope appears: tap to open it, then swipe the letter
 up out of it (a tap or the button takes it out too). The confetti and music box
 play when the letter lands. `CONFIG.envelope.enabled: false` skips the envelope.
 
+Under the letter, **保存这张生日小票** draws a receipt-style keepsake image (the
+whole letter, a playful itemised list and a colourful QR code back to this page)
+that can be saved to Photos. Texts live in `CONFIG.receipt`; regenerate the QR
+for another address with `python3 tools/make-qr.py URL`.
+
 ## 2. Configure it — one place only
 
 Open `script.js`. The very first thing in the file is a `CONFIG` object. Everything you

@@ -113,6 +113,28 @@ const CONFIG = {
     ],
   },
 
+  /* --- 9b. Birthday receipt: a keepsake image the reader can save --------- */
+  receipt: {
+    enabled: true,
+    button: "保存这张生日小票",
+    saveLabel: "保存到相册",
+    closeLabel: "关闭",
+    saveHint: "也可以长按图片保存",
+    title: "BIRTHDAY RECEIPT",
+    to: "郑榕琪",
+    items: [                         // [what, how many]
+      ["新的一岁", "×1"],
+      ["期待已久的好消息", "×∞"],
+      ["不期而遇的小惊喜", "×∞"],
+      ["好吃的", "×365"],
+      ["勇往直前 · 共阅千山", "×1"],
+    ],
+    total: ["合计", "满满的祝福"],
+    qrNote: "扫码回到这封信",
+    thanks: "THANK YOU · 生日快乐",
+    qr: "assets/receipt-qr.png",
+  },
+
   /* --- 10. Behaviour ---------------------------------------------------- */
   /* false = ask for the date on every load, on every device, every time.
      true  = reopening the link in the same browser stays unlocked.
@@ -405,6 +427,7 @@ const CONFIG = {
 
     mountPhoto();
     mountGallery();
+    mountReceipt();
   }
 
   /* --- sound: synthesized with Web Audio, no files ------------------------
@@ -633,6 +656,180 @@ const CONFIG = {
     };
   })();
 
+  /* --- birthday receipt ---------------------------------------------------
+     Drawn on a canvas like a thermal receipt: torn edges, dashed rules, the
+     whole letter, a playful "itemised" list and a colourful QR code back to
+     this page. Shown in a sheet; Save uses the share sheet where available
+     (iPhone: "Save Image"), otherwise a download; long-press also works.     */
+  function receiptImage() {
+    var cfg = CONFIG.receipt;
+    var W = 380, PAD = 30, SCALE = 3;
+    var mono = '"SF Mono", Menlo, Consolas, "PingFang SC", monospace';
+    var hand = '"Ma Shan Zheng", "Kaiti SC", "STKaiti", serif';
+    var sign = '"Zhi Mang Xing", "Kaiti SC", serif';
+    var ink = "#2b2235", soft = "#6d5f78", rose = "#b0507a";
+
+    var fonts = document.fonts && document.fonts.load
+      ? Promise.all([document.fonts.load('18px "Ma Shan Zheng"'), document.fonts.load('28px "Zhi Mang Xing"'), document.fonts.load('20px "Courgette"')])
+      : Promise.resolve();
+    var qr = new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { resolve(null); };
+      img.src = cfg.qr;
+    });
+
+    return Promise.all([fonts, qr]).then(function (r) {
+      var qrImg = r[1];
+      var measure = document.createElement("canvas").getContext("2d");
+
+      function wrap(text, font, width) {
+        measure.font = font;
+        var lines = [], line = "";
+        var noStart = "，。！？、；：）」』》〉…～,.!?;:)~";       // never begin a line with these
+        Array.from(text).forEach(function (ch) {
+          if (measure.measureText(line + ch).width > width && line && noStart.indexOf(ch) < 0) { lines.push(line); line = ch; }
+          else line += ch;
+        });
+        if (line) lines.push(line);
+        return lines;
+      }
+
+      // Lay everything out first, then draw at that height.
+      var ops = [], y = 36;
+      function text(t, font, color, align, lh) { ops.push(["text", t, font, color, align, y]); y += lh; }
+      function dash() { y += 8; ops.push(["dash", y]); y += 18; }
+      function gap(h) { y += h; }
+
+      text(cfg.title, "700 15px " + mono, ink, "center", 26);
+      text("Happy Birthday", '24px "Courgette", cursive', ink, "center", 30);
+      text(fill(CONFIG.date || ""), "12px " + mono, soft, "center", 6);
+      dash();
+      text("TO   " + fill(cfg.to), "13px " + mono, ink, "left", 22);
+      text("FROM " + fill(CONFIG.senderName), "13px " + mono, ink, "left", 4);
+      dash();
+      var body = '17px ' + hand;
+      var paras = (CONFIG.greeting ? [CONFIG.greeting] : []).concat(CONFIG.message || []);
+      paras.forEach(function (para, i) {
+        var lead = i === 0 && CONFIG.greeting ? "" : "　　";
+        wrap(lead + fill(para), body, W - PAD * 2).forEach(function (l) { text(l, body, ink, "left", 30); });
+        gap(4);
+      });
+      gap(6);
+      text("— " + fill(CONFIG.senderName), "26px " + sign, ink, "right", 34);
+      dash();
+      (cfg.items || []).forEach(function (it) {
+        ops.push(["pair", fill(it[0]), it[1], "13px " + mono, ink, y]); y += 22;
+      });
+      dash();
+      ops.push(["pair", fill(cfg.total[0]), fill(cfg.total[1]), "700 14px " + mono, rose, y]); y += 8;
+      dash();
+      var qrSize = 132, qrY = y;
+      if (qrImg) { ops.push(["qr", qrY, qrSize]); y += qrSize + 18; }
+      text(fill(cfg.qrNote), "12px " + mono, soft, "center", 22);
+      ops.push(["cake", y]); y += 44;
+      text(fill(cfg.thanks), "12px " + mono, soft, "center", 22);
+      var H = y + 30;
+
+      var canvas = document.createElement("canvas");
+      canvas.width = W * SCALE; canvas.height = H * SCALE;
+      var ctx = canvas.getContext("2d");
+      ctx.scale(SCALE, SCALE);
+
+      // paper with torn (zigzag) top and bottom edges
+      ctx.fillStyle = "#fffdf8";
+      ctx.beginPath();
+      var tooth = 8;
+      var teeth = Math.ceil(W / tooth);
+      ctx.moveTo(0, tooth);
+      for (var i = 0; i <= teeth; i++) ctx.lineTo(Math.min(i * tooth, W), i % 2 ? 0 : tooth);
+      ctx.lineTo(W, H - tooth);
+      for (var j = teeth; j >= 0; j--) ctx.lineTo(Math.min(j * tooth, W), j % 2 ? H : H - tooth);
+      ctx.closePath();
+      ctx.fill();
+
+      ops.forEach(function (op) {
+        if (op[0] === "text") {
+          ctx.font = op[2]; ctx.fillStyle = op[3]; ctx.textBaseline = "top";
+          ctx.textAlign = op[4];
+          var tx = op[4] === "center" ? W / 2 : op[4] === "right" ? W - PAD : PAD;
+          ctx.fillText(op[1], tx, op[5]);
+        } else if (op[0] === "dash") {
+          ctx.strokeStyle = "rgba(90, 70, 110, .35)"; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+          ctx.beginPath(); ctx.moveTo(PAD, op[1]); ctx.lineTo(W - PAD, op[1]); ctx.stroke(); ctx.setLineDash([]);
+        } else if (op[0] === "pair") {
+          ctx.font = op[3]; ctx.fillStyle = op[4]; ctx.textBaseline = "top";
+          ctx.textAlign = "left"; ctx.fillText(op[1], PAD, op[5]);
+          ctx.textAlign = "right"; ctx.fillText(op[2], W - PAD, op[5]);
+        } else if (op[0] === "qr") {
+          ctx.imageSmoothingEnabled = true;
+          ctx.drawImage(qrImg, (W - op[2]) / 2, op[1], op[2], op[2]);
+        } else if (op[0] === "cake") {
+          var cx = W / 2, cy = op[1];
+          ctx.fillStyle = "#ffe3ec"; ctx.fillRect(cx - 22, cy + 18, 44, 16);
+          ctx.fillStyle = "#c9b2ff"; ctx.fillRect(cx - 22, cy + 18, 44, 5);
+          ctx.fillStyle = "#fff4f7"; ctx.fillRect(cx - 15, cy + 8, 30, 11);
+          ctx.fillStyle = "#ff9cc0"; ctx.fillRect(cx - 15, cy + 8, 30, 4);
+          [["#b9a3ff", -8], ["#ff8fb2", 0], ["#8fd3ff", 8]].forEach(function (c) {
+            ctx.fillStyle = c[0]; ctx.fillRect(cx + c[1] - 1.5, cy - 2, 3, 10);
+            ctx.fillStyle = "#ffc24a"; ctx.beginPath(); ctx.ellipse(cx + c[1], cy - 5, 2, 3.4, 0, 0, Math.PI * 2); ctx.fill();
+          });
+        }
+      });
+      return new Promise(function (resolve) { canvas.toBlob(resolve, "image/png"); });
+    });
+  }
+
+  function mountReceipt() {
+    var cfg = CONFIG.receipt;
+    var block = $("#receiptBlock");
+    if (!cfg || cfg.enabled === false || !block) return;
+    var openBtn = $("#receiptBtn");
+    var sheet = $("#receiptSheet");
+    var img = $("#receiptImg");
+    var save = $("#receiptSave");
+    var close = $("#receiptClose");
+    $("#receiptBtnLabel").textContent = fill(cfg.button);
+    save.textContent = fill(cfg.saveLabel);
+    close.textContent = fill(cfg.closeLabel);
+    $("#receiptHint").textContent = fill(cfg.saveHint);
+    var blob = null, url = "";
+
+    openBtn.addEventListener("click", function () {
+      openBtn.disabled = true;
+      receiptImage().then(function (b) {
+        blob = b;
+        if (url) URL.revokeObjectURL(url);
+        url = URL.createObjectURL(b);
+        img.src = url;
+        sheet.hidden = false;
+        document.documentElement.classList.add("is-sheet");
+        save.focus({ preventScroll: true });
+      }).catch(function () { /* ignore */ }).then(function () { openBtn.disabled = false; });
+    });
+
+    save.addEventListener("click", function () {
+      if (!blob) return;
+      var file = new File([blob], "birthday-receipt.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file] }).catch(function () { /* cancelled */ });
+      } else {
+        var a = document.createElement("a");
+        a.href = url; a.download = "birthday-receipt.png";
+        document.body.appendChild(a); a.click(); a.remove();
+      }
+    });
+
+    function hide() {
+      sheet.hidden = true;
+      document.documentElement.classList.remove("is-sheet");
+      openBtn.focus({ preventScroll: true });
+    }
+    close.addEventListener("click", hide);
+    sheet.addEventListener("click", function (e) { if (e.target === sheet) hide(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !sheet.hidden) hide(); });
+  }
+
   /* --- confetti: four corner cannons with paper bits and streamers ------ */
   function celebrate() {
     if (!CONFIG.confetti || !motionOK()) return;
@@ -754,6 +951,9 @@ const CONFIG = {
   function unlock(options) {
     if (unlocked) return;
     unlocked = true;
+    /* Close the phone keyboard now, so the first touch on the envelope is a
+       swipe and not iOS dismissing the keyboard. */
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     var animate = !options || options.animate !== false;
     var gate = $("#gate");
 
@@ -840,8 +1040,10 @@ const CONFIG = {
       front.appendChild(shade);
       var back = document.createElement("div");
       back.className = "fold__face fold__face--back";
+      front.style.visibility = "hidden";          // folded: the writing faces inwards
       top.appendChild(front);
       top.appendChild(back);
+      fold.__front = front; fold.__back = back;
       fold.appendChild(bottom);
       fold.appendChild(top);
       top.style.transform = "perspective(1600px) rotateX(-180deg)";
@@ -951,12 +1153,23 @@ const CONFIG = {
       flight.onfinish = function () {
         fold.style.transform = to;
         sfx.unfold();
-        var unfold = top.animate(
-          [{ transform: "perspective(1600px) rotateX(-180deg)" },
-           { transform: "perspective(1600px) rotateX(-70deg)", offset: 0.55 },
-           { transform: "perspective(1600px) rotateX(0deg)" }],
-          { duration: 780, easing: "cubic-bezier(.45, .05, .25, 1)", fill: "forwards" });
-        shade.animate([{ opacity: 0 }, { opacity: 1, offset: 0.45 }, { opacity: 0 }], { duration: 780, fill: "forwards" });
+        /* Unfold by hand so the faces swap exactly at 90°: before that the
+           blank back shows, after it the writing. Works the same whether or
+           not the browser honours backface-visibility. */
+        var front = fold.__front, back = fold.__back, t0 = performance.now(), D = 780;
+        var unfold = { onfinish: null };
+        (function step(now) {
+          var k = Math.min((now - t0) / D, 1);
+          var e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   // ease in-out
+          var angle = -180 + 180 * e;
+          top.style.transform = "perspective(1600px) rotateX(" + angle.toFixed(2) + "deg)";
+          var past = angle > -90;
+          front.style.visibility = past ? "visible" : "hidden";
+          back.style.visibility = past ? "hidden" : "visible";
+          shade.style.opacity = String(Math.max(0, 1 - Math.abs(angle + 70) / 70) * 0.9);
+          if (k < 1) requestAnimationFrame(step);
+          else if (unfold.onfinish) unfold.onfinish();
+        })(t0);
         unfold.onfinish = function () {
           gift.style.visibility = "";
           stage.hidden = true;
@@ -1007,6 +1220,8 @@ const CONFIG = {
     var gift = $("#gift");
     var already = opts && opts.already;
     gift.hidden = false;
+    var receipt = $("#receiptBlock");
+    if (receipt && CONFIG.receipt && CONFIG.receipt.enabled !== false) receipt.hidden = false;
     if (animate && motionOK() && !already) gift.classList.add("is-entering");
 
     if (animate) {

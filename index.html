@@ -12,9 +12,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E">
 <title>A little surprise</title>
 <link rel="preload" href="assets/fonts/Courgette-Regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/MaShanZheng-Regular.subset.woff2?v=b38c017f" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/ZhiMangXing-Regular.subset.woff2?v=0fab4ba8" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=glass-28">
+<link rel="preload" href="assets/fonts/MaShanZheng-Regular.subset.woff2?v=9f95ab2f" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/ZhiMangXing-Regular.subset.woff2?v=52760061" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css?v=glass-30">
 </head>
 <body>
 
@@ -162,6 +162,24 @@
       </div>
     </section>
 
+    <!-- Keepsake receipt: button under the letter, sheet with the image -->
+    <div id="receiptBlock" class="receipt" hidden>
+      <button id="receiptBtn" class="receipt__btn" type="button">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2h10v16l-2-1.4-1.6 1.4-1.4-1.4L8.6 18 7 16.6 5 18z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7.5 6h5M7.5 9h5M7.5 12h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <span id="receiptBtnLabel"></span>
+      </button>
+    </div>
+    <div id="receiptSheet" class="sheet" role="dialog" aria-modal="true" aria-label="Birthday receipt" hidden>
+      <div class="sheet__panel">
+        <img id="receiptImg" class="sheet__img" alt="Birthday receipt">
+        <p id="receiptHint" class="sheet__hint"></p>
+        <div class="sheet__actions">
+          <button id="receiptClose" class="sheet__btn sheet__btn--ghost" type="button"></button>
+          <button id="receiptSave" class="sheet__btn" type="button"></button>
+        </div>
+      </div>
+    </div>
+
     <!-- ============ The envelope (between the lock screen and the letter) ============ -->
     <section id="envelope" class="envelope" hidden>
       <div class="envelope__scene" id="envelopeScene">
@@ -271,7 +289,7 @@
 
   </main>
 
-  <script src="script.js?v=glass-27"></script>
+  <script src="script.js?v=glass-30"></script>
   <script src="glass.js?v=glass-11"></script>
 </body>
 </html>
