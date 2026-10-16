@@ -992,6 +992,7 @@ const CONFIG = {
     /* Close the phone keyboard now, so the first touch on the envelope is a
        swipe and not iOS dismissing the keyboard. */
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    document.documentElement.classList.remove("is-locked");
     var animate = !options || options.animate !== false;
     var gate = $("#gate");
 
@@ -1299,6 +1300,15 @@ const CONFIG = {
 
   /* --- the lock screen --------------------------------------------------- */
   function wireGate() {
+    /* The lock screen is a single screen. Let it neither scroll nor rubber-
+       band on iOS: the glass is drawn on a fixed layer, so a bounce would
+       slide the card away from its glass edge. */
+    var root = document.documentElement;
+    root.classList.add("is-locked");
+    document.addEventListener("touchmove", function (e) {
+      if (root.classList.contains("is-locked")) e.preventDefault();
+    }, { passive: false });
+
     var form = $("#gateForm");
     var input = $("#birthdayInput");
     var button = $("#gateSubmit");
