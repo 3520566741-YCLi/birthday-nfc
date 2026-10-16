@@ -133,8 +133,8 @@ const CONFIG = {
     total: ["合计", "满满的祝福"],
     qrNote: "扫码回到这封信",
     thanks: "THANK YOU · 生日快乐",
-    qr: "assets/receipt-qr.png",
-    barcode: "assets/receipt-barcode.png",
+    qr: "assets/receipt-qr.png?v=8ecf2586",
+    barcode: "assets/receipt-barcode.png?v=adc53d72",
     number: "No. HBD-20261013",
   },
 
