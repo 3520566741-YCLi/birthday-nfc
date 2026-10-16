@@ -20,7 +20,7 @@ const CONFIG = {
 
   /* --- 2. Names ---------------------------------------------------------- */
   recipientName: "Friend",          // shown in the headline
-  senderName: "Yuchen",             // signature at the end of the letter
+  senderName: "李雨宸",             // signature at the end of the letter
 
   /* --- 3. Lock screen --------------------------------------------------- */
   gate: {
@@ -94,7 +94,7 @@ const CONFIG = {
 
   /* --- 9. Easter egg (optional) ----------------------------------------- */
   egg: {
-    enabled: true,
+    enabled: false,
     buttonLabel: "还有一个小彩蛋",
     title: "彩蛋时间 🥚",
     paragraphs: [
