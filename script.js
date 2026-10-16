@@ -111,6 +111,7 @@ const CONFIG = {
      the code any more secret: the password is in this file either way.        */
   rememberUnlock: false,
   confetti: true,                   // small celebration burst on unlock
+  sound: true,                      // soft synthesized sounds: key taps, wrong code, unlock pops + chime
   confettiCount: 34,
 };
 
@@ -395,6 +396,152 @@ const CONFIG = {
     mountGallery();
   }
 
+  /* --- sound: synthesized with Web Audio, no files ------------------------
+     Browsers (iOS Safari especially) only allow audio after the visitor taps
+     or types, so the context is created on the first interaction and every
+     sound is a quiet, short envelope. On iPhone, the silent switch may mute
+     Web Audio entirely; that is fine for a gift page.                        */
+  var sfx = (function () {
+    var ctx = null, master = null, noise = null;
+
+    function ensure() {
+      if (!CONFIG.sound) return null;
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try {
+        if (!ctx) {
+          ctx = new AC();
+          master = ctx.createGain();
+          master.gain.value = 0.55;
+          master.connect(ctx.destination);
+        }
+        if (ctx.state === "suspended" && ctx.resume) ctx.resume();
+      } catch (e) { ctx = null; }
+      return ctx;
+    }
+
+    function noiseBuffer(c) {
+      if (noise && noise.sampleRate === c.sampleRate) return noise;
+      var length = Math.round(c.sampleRate * 0.4);
+      var buffer = c.createBuffer(1, length, c.sampleRate);
+      var data = buffer.getChannelData(0);
+      for (var i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+      if (c === ctx) noise = buffer;
+      return buffer;
+    }
+
+    function envelope(c, node, t, peak, attack, decay) {
+      node.gain.setValueAtTime(0.0001, t);
+      node.gain.exponentialRampToValueAtTime(peak, t + attack);
+      node.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    }
+
+    function panner(c, dest, pan) {
+      if (!c.createStereoPanner) return dest;
+      var p = c.createStereoPanner();
+      p.pan.value = pan;
+      p.connect(dest);
+      return p;
+    }
+
+    /* Each voice takes (context, destination, start time) so the same sound
+       can also be rendered offline for listening outside the page. */
+    function tapVoice(c, dest, t) {
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(1500, t);
+      o.frequency.exponentialRampToValueAtTime(900, t + 0.05);
+      envelope(c, g, t, 0.07, 0.003, 0.06);
+      o.connect(g); g.connect(dest);
+      o.start(t); o.stop(t + 0.09);
+    }
+
+    function wrongVoice(c, dest, t) {
+      [[392, 0], [311, 0.13]].forEach(function (n) {
+        var o = c.createOscillator(), g = c.createGain();
+        o.type = "triangle";
+        o.frequency.value = n[0];
+        envelope(c, g, t + n[1], 0.12, 0.01, 0.22);
+        o.connect(g); g.connect(dest);
+        o.start(t + n[1]); o.stop(t + n[1] + 0.26);
+      });
+    }
+
+    function popVoice(c, dest, t, pan) {
+      var out = panner(c, dest, pan);
+      // the snap: a short burst of filtered noise
+      var src = c.createBufferSource(), band = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = noiseBuffer(c);
+      band.type = "bandpass";
+      band.frequency.value = 1700 + Math.random() * 600;
+      band.Q.value = 0.9;
+      envelope(c, g, t, 0.55, 0.002, 0.09);
+      src.connect(band); band.connect(g); g.connect(out);
+      src.start(t); src.stop(t + 0.14);
+      // the body: a quick falling thump
+      var o = c.createOscillator(), og = c.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(190, t);
+      o.frequency.exponentialRampToValueAtTime(70, t + 0.09);
+      envelope(c, og, t, 0.30, 0.003, 0.10);
+      o.connect(og); og.connect(out);
+      o.start(t); o.stop(t + 0.14);
+      // the confetti rustle after it
+      var r = c.createBufferSource(), high = c.createBiquadFilter(), rg = c.createGain();
+      r.buffer = noiseBuffer(c);
+      high.type = "highpass";
+      high.frequency.value = 5000;
+      envelope(c, rg, t + 0.03, 0.05, 0.04, 0.32);
+      r.connect(high); high.connect(rg); rg.connect(out);
+      r.start(t + 0.03); r.stop(t + 0.4);
+    }
+
+    function chimeVoice(c, dest, t) {
+      // a warm major arpeggio, like a small music box: E5 G#5 B5 E6
+      [659.25, 830.61, 987.77, 1318.51].forEach(function (f, i) {
+        var at = t + i * 0.09;
+        [[1, 0.09], [2.01, 0.025], [3.0, 0.012]].forEach(function (partial) {
+          var o = c.createOscillator(), g = c.createGain();
+          o.type = "sine";
+          o.frequency.value = f * partial[0];
+          envelope(c, g, at, partial[1], 0.006, 1.3 - i * 0.12);
+          o.connect(g); g.connect(dest);
+          o.start(at); o.stop(at + 1.5);
+        });
+      });
+    }
+
+    function play(voice, extra) {
+      var c = ensure();
+      if (!c) return;
+      try { voice(c, master, c.currentTime + 0.01, extra); } catch (e) { /* ignore */ }
+    }
+
+    var lastTap = 0;
+    return {
+      wake: ensure,
+      tap: function () {
+        var now = performance.now();
+        if (now - lastTap < 45) return;     // no buzz on fast typing or paste
+        lastTap = now;
+        play(tapVoice);
+      },
+      wrong: function () { play(wrongVoice); },
+      celebrate: function () {
+        var c = ensure();
+        if (!c) return;
+        var t = c.currentTime + 0.02;
+        try {
+          // same order and stagger as the four confetti cannons
+          [-0.8, 0.8, -0.8, 0.8].forEach(function (pan, k) { popVoice(c, master, t + k * 0.035 + 0.04, pan); });
+          chimeVoice(c, master, t + 0.32);
+        } catch (e) { /* ignore */ }
+      },
+      // for rendering a preview file; not used by the page
+      voices: { tap: tapVoice, wrong: wrongVoice, pop: popVoice, chime: chimeVoice },
+    };
+  })();
+
   /* --- confetti: four corner cannons with paper bits and streamers ------ */
   function celebrate() {
     if (!CONFIG.confetti || !motionOK()) return;
@@ -534,6 +681,7 @@ const CONFIG = {
     if (animate) {
       if (CONFIG.rememberUnlock) storageSet(STORAGE_KEY, "1");
       celebrate();
+      sfx.celebrate();
     }
 
     /* Move focus somewhere sensible for screen readers and keyboards. */
@@ -558,6 +706,13 @@ const CONFIG = {
       var clean = input.value.replace(/[^0-9]/g, "").slice(0, 4);
       if (clean !== input.value) input.value = clean;
       if (error.textContent) clearError();
+      if (clean) sfx.tap();
+    });
+
+    /* Unlock audio on the first touch, before any sound is needed. */
+    ["pointerdown", "touchend", "keydown"].forEach(function (type) {
+      input.addEventListener(type, function () { sfx.wake(); }, { passive: true });
+      button.addEventListener(type, function () { sfx.wake(); }, { passive: true });
     });
 
     input.addEventListener("keydown", function (event) {
@@ -573,6 +728,7 @@ const CONFIG = {
     }
 
     function showError() {
+      sfx.wrong();
       error.textContent = fill(CONFIG.gate.wrongMessage);
       error.classList.add("is-on");
       input.classList.remove("is-shaking");
@@ -597,6 +753,7 @@ const CONFIG = {
 
       /* Correct. A short beat makes the unlock feel intentional. */
       busy = true;
+      sfx.wake();
       clearError();
       button.disabled = true;
       window.setTimeout(function () { unlock({ animate: true }); }, 180);
