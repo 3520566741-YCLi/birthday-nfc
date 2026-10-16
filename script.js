@@ -43,7 +43,7 @@ const CONFIG = {
 
   /* --- 4. The gift text -------------------------------------------------- */
   gift: {
-    title: "Happy Birthday 🎂",     // {name} is replaced with recipientName
+    title: "Happy Birthday",        // {name} is replaced with recipientName (a cake is drawn after it)
     subtitle: "",                   // optional line under the headline (empty = hidden)
   },
 
