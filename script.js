@@ -48,9 +48,11 @@ const CONFIG = {
   },
 
   /* Write paragraphs as separate strings. They render as <p> tags. */
+  greeting: "祝郑榕琪生日快乐呀！",   // first line of the letter, not indented (leave "" to skip)
   message: [
-    "希望你新的一岁每天都开心，想做的事情都能顺利实现。",
-    "这个小礼物里藏了这一段话，希望你看到的时候会笑一下。",
+    "希望你在未来的日子里，对自己更好一些，不为杂念所扰，每天都活力满满～做自己想做的事（还有！吃自己想吃的好吃的!!!），把喜欢的事情都变成生活的日常！",
+    "愿这一岁里，有期待已久的好消息，也有不期而遇的小惊喜。那些暂时还没有答案的事，就随风去，等风来～",
+    "新的一岁，依旧邀你一起继续勇往直前，共阅千山！",
   ],
 
   /* --- 5. One main photo (optional) ------------------------------------- */
@@ -396,6 +398,7 @@ const CONFIG = {
     $("#senderName").textContent = fill(CONFIG.senderName);
 
     var body = $("#messageBody");
+    if (CONFIG.greeting) body.appendChild(paragraph(CONFIG.greeting, "letter__greeting"));
     (CONFIG.message || []).forEach(function (text) {
       body.appendChild(paragraph(text));
     });

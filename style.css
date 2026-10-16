@@ -20,7 +20,7 @@
   --accent-soft: rgba(110, 100, 230, .28);
   --danger:      #8c2d42;
 
-  --rule: 38px;                          /* notebook line pitch = letter line height */
+  --rule: 33px;                          /* notebook line pitch = letter line height */
   --rule-ink:  rgba(110, 130, 180, .30);
   --rule-glow: transparent;
   --margin-ink: rgba(255, 104, 150, .50);
@@ -336,15 +336,15 @@ button, input { font: inherit; color: inherit; }
 .gift {
   display: block;
   border-radius: 14px;
-  padding: 40px 28px 26px;
+  padding: 28px 28px 18px;
 }
 .gift.is-entering { animation: riseIn 1s var(--ease-out) both; }
 
 .gift__head { text-align: center; }
 .gift__kicker {
-  font-size: 30px;
+  font-size: 26px;
   line-height: 1;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
   filter: drop-shadow(0 6px 10px rgba(120, 60, 90, .18));
 }
 
@@ -418,8 +418,8 @@ button, input { font: inherit; color: inherit; }
    --rule grid, so paragraphs indent instead of leaving gaps. */
 .letter {
   position: relative;
-  margin: 28px -28px 0;
-  padding: 26px 22px 6px 44px;
+  margin: 18px -28px 0;
+  padding: 16px 22px 4px 44px;
   background:
     linear-gradient(90deg, transparent 31px, var(--margin-ink) 31px, var(--margin-ink) 32.5px, transparent 32.5px,
                            transparent 35px, var(--margin-ink) 35px, var(--margin-ink) 36px, transparent 36px),
@@ -429,7 +429,7 @@ button, input { font: inherit; color: inherit; }
       var(--rule-glow) var(--rule), var(--rule-glow) calc(var(--rule) + 1px),
       transparent calc(var(--rule) + 1px), transparent calc(var(--rule) + 1px));
   background-size: 100% 100%, 100% calc(var(--rule) + 0px);
-  background-position: 0 0, 0 26px;
+  background-position: 0 0, 0 16px;
   background-repeat: no-repeat, repeat-y;
   background-clip: padding-box;
 }
@@ -443,13 +443,14 @@ button, input { font: inherit; color: inherit; }
 }
 .letter__body {
   font-family: var(--font-letter);
-  font-size: clamp(17.5px, 4.65vw, 19px);
+  font-size: clamp(16.5px, 4.45vw, 18px);
   line-height: var(--rule);
   letter-spacing: 0;
   font-synthesis: none;
   color: var(--ink);
 }
 .letter__body p { text-indent: 2em; }
+.letter__body p.letter__greeting { text-indent: 0; }
 .letter__body p + p { margin-top: 0; }
 .letter__body--small { font-size: 17px; color: var(--ink-soft); }
 
@@ -551,12 +552,12 @@ button, input { font: inherit; color: inherit; }
 }
 
 .footnote {
-  margin-top: 22px;
+  margin-top: 14px;
   text-align: center;
   font-size: 20px;
   opacity: .85;
 }
-.balloons { margin-top: 10px; opacity: 1; line-height: 0; }
+.balloons { margin-top: 6px; opacity: 1; line-height: 0; }
 .balloons svg { display: inline-block; max-width: 100%; height: auto; overflow: visible; }
 .balloon { transform-box: fill-box; transform-origin: 50% 100%; animation: bob 5.5s ease-in-out infinite; }
 .balloon--2 { animation-duration: 6.4s; animation-delay: -2.1s; }
@@ -848,7 +849,7 @@ html.is-envelope, html.is-envelope body { overflow: hidden; overscroll-behavior:
   .gate__title { font-size: 38px; }
   .gate__inner, .gift { padding-left: 38px; padding-right: 38px; }
   .letter { margin-left: -38px; margin-right: -38px; padding-left: 58px; padding-right: 38px; }
-  .letter { background-position: 12px 0, 0 26px; }
+  .letter { background-position: 12px 0, 0 16px; }
 }
 
 /* 9 · Preferences ---------------------------------------------------------- */
