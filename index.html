@@ -14,7 +14,7 @@
 <link rel="preload" href="assets/fonts/Courgette-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/MaShanZheng-Regular.subset.woff2?v=3cecc7bd" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/ZhiMangXing-Regular.subset.woff2?v=958d9e2b" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=glass-37">
+<link rel="stylesheet" href="style.css?v=glass-38">
 </head>
 <body>
 
@@ -171,7 +171,16 @@
     </div>
     <div id="receiptSheet" class="sheet" role="dialog" aria-modal="true" aria-label="Birthday receipt" hidden>
       <div class="sheet__panel">
-        <img id="receiptImg" class="sheet__img" alt="Birthday receipt">
+        <div class="printer" aria-hidden="true">
+          <div class="printer__body">
+            <span class="printer__label">BIRTHDAY POST</span>
+            <span class="printer__led"></span>
+          </div>
+          <div class="printer__slot"></div>
+        </div>
+        <div id="receiptPaper" class="sheet__paper">
+          <img id="receiptImg" class="sheet__img" alt="Birthday receipt">
+        </div>
         <p id="receiptHint" class="sheet__hint"></p>
         <div class="sheet__actions">
           <button id="receiptClose" class="sheet__btn sheet__btn--ghost" type="button"></button>
@@ -289,7 +298,7 @@
 
   </main>
 
-  <script src="script.js?v=glass-37"></script>
+  <script src="script.js?v=glass-39"></script>
   <script src="glass.js?v=glass-34"></script>
 </body>
 </html>

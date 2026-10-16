@@ -621,6 +621,32 @@ const CONFIG = {
       sweep(c, dest, t + 0.05, 0.6, 700, 2400, "bandpass", 0.08, 0.9);
     }
 
+    function printVoice(c, dest, t, dur) {         // thermal printer: fast stepping buzz + motor hum
+      dur = dur || 1.5;
+      var hum = c.createOscillator(), hg = c.createGain(), lp = c.createBiquadFilter();
+      hum.type = "sawtooth"; hum.frequency.value = 96;
+      lp.type = "lowpass"; lp.frequency.value = 700;
+      hg.gain.setValueAtTime(0.0001, t);
+      hg.gain.exponentialRampToValueAtTime(0.09, t + 0.05);
+      hg.gain.setValueAtTime(0.09, t + dur - 0.05);
+      hg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      hum.connect(lp); lp.connect(hg); hg.connect(dest);
+      hum.start(t); hum.stop(t + dur + 0.05);
+      for (var k = 0; t + k * 0.034 < t + dur; k++) {                 // the print head, line by line
+        var at = t + k * 0.034;
+        var src = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+        src.buffer = noiseBuffer(c);
+        bp.type = "bandpass"; bp.frequency.value = 2600 + (k % 3) * 300; bp.Q.value = 3;
+        envelope(c, g, at, 0.42, 0.002, 0.022);
+        src.connect(bp); bp.connect(g); g.connect(dest);
+        src.start(at, Math.random() * 0.3); src.stop(at + 0.03);
+      }
+    }
+
+    function tearVoice(c, dest, t) {               // paper torn off against the blade
+      sweep(c, dest, t, 0.16, 5200, 1500, "bandpass", 0.55, 1.6);
+    }
+
     function play(voice, extra) {
       var c = ensure();
       if (!c) return;
@@ -643,6 +669,8 @@ const CONFIG = {
       slide: function () { play(slideVoice); },
       fly: function () { play(flyVoice); },
       unfold: function () { play(unfoldVoice); },
+      print: function (dur) { play(printVoice, dur); },
+      tear: function () { play(tearVoice); },
       celebrate: function () {
         var c = ensure();
         if (!c) return;
@@ -655,7 +683,7 @@ const CONFIG = {
         } catch (e) { /* ignore */ }
       },
       // for rendering a preview file; not used by the page
-      voices: { tap: tapVoice, wrong: wrongVoice, pop: popVoice, sparkle: sparkleVoice, chime: chimeVoice, arrive: arriveVoice, open: openVoice, dive: diveVoice },
+      voices: { tap: tapVoice, wrong: wrongVoice, pop: popVoice, sparkle: sparkleVoice, chime: chimeVoice, arrive: arriveVoice, open: openVoice, dive: diveVoice, print: printVoice, tear: tearVoice },
     };
   })();
 
@@ -833,16 +861,41 @@ const CONFIG = {
     $("#receiptHint").textContent = fill(cfg.saveHint);
     var blob = null, url = "";
 
+    var paper = $("#receiptPaper");
+    var PRINT_MS = 1500;
+
+    /* The receipt feeds out of the little printer, top first, with the
+       print-head sound; then it is torn off and the buttons appear. */
+    function print() {
+      sheet.classList.add("is-printing");
+      paper.scrollTop = 0;
+      if (!motionOK()) { done(); return; }
+      sfx.wake();
+      sfx.print(PRINT_MS / 1000);
+      var feed = img.animate(
+        [{ transform: "translateY(-100%)" }, { transform: "translateY(0)" }],
+        { duration: PRINT_MS, easing: "cubic-bezier(.35, .1, .5, 1)", fill: "both" });
+      feed.onfinish = function () { sfx.tear(); done(); };
+    }
+    function done() {
+      sheet.classList.remove("is-printing");
+      sheet.classList.add("is-printed");
+      save.focus({ preventScroll: true });
+    }
+
     openBtn.addEventListener("click", function () {
       openBtn.disabled = true;
+      sfx.wake();
       receiptImage().then(function (b) {
         blob = b;
         if (url) URL.revokeObjectURL(url);
         url = URL.createObjectURL(b);
-        img.src = url;
+        return new Promise(function (resolve) { img.onload = resolve; img.src = url; });
+      }).then(function () {
+        sheet.classList.remove("is-printed");
         sheet.hidden = false;
         document.documentElement.classList.add("is-sheet");
-        save.focus({ preventScroll: true });
+        requestAnimationFrame(print);
       }).catch(function () { /* ignore */ }).then(function () { openBtn.disabled = false; });
     });
 
