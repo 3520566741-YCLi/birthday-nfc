@@ -60,13 +60,13 @@
    the message or the signature. Anything not in the subset uses the fallbacks. */
 @font-face {
   font-family: "Ma Shan Zheng";
-  src: url("assets/fonts/MaShanZheng-Regular.subset.woff2") format("woff2");
+  src: url("assets/fonts/MaShanZheng-Regular.subset.woff2?v=b38c017f") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
   font-family: "Zhi Mang Xing";
-  src: url("assets/fonts/ZhiMangXing-Regular.subset.woff2") format("woff2");
+  src: url("assets/fonts/ZhiMangXing-Regular.subset.woff2?v=0fab4ba8") format("woff2");
   font-weight: 400;
   font-display: swap;
 }

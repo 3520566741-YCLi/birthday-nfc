@@ -5,7 +5,8 @@ Chinese fonts are several megabytes each. This script keeps just the glyphs that
 appear in the CONFIG block of script.js (message, signature, egg text …) plus
 common punctuation, and writes small WOFF2 files into assets/fonts/.
 
-Run it again whenever you change the message or the signature:
+Run it again whenever you change the message or the signature (it also
+updates the ?v= version in style.css and index.html so phones re-download):
 
     pip install fonttools brotli
     python3 tools/subset-fonts.py
@@ -59,7 +60,23 @@ def build(name, url, text):
     print(f"{target.name}: {target.stat().st_size / 1024:.1f} KB", f"(not in font: {''.join(missing)})" if missing else "")
 
 
+def stamp_versions():
+    """Point style.css and index.html at the new files with a content hash, so
+    phones that cached an older subset fetch the new one."""
+    import hashlib
+    for name in SOURCES:
+        fname = name + ".subset.woff2"
+        digest = hashlib.sha1((OUT / fname).read_bytes()).hexdigest()[:8]
+        for page in ("style.css", "index.html"):
+            path = ROOT / page
+            text = path.read_text(encoding="utf-8")
+            text = re.sub(re.escape(fname) + r'(\?v=[0-9a-f]+)?', fname + "?v=" + digest, text)
+            path.write_text(text, encoding="utf-8")
+        print(f"{fname} -> ?v={digest}")
+
+
 if __name__ == "__main__":
     text = page_text()
     for name, url in SOURCES.items():
         build(name, url, text)
+    stamp_versions()
