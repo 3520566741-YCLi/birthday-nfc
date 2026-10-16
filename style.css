@@ -341,7 +341,7 @@ button, input { font: inherit; color: inherit; }
   max-width: 22em;
   font-size: 15px;
   line-height: 1.6;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   text-wrap: balance;
 }
 
@@ -492,6 +492,7 @@ button, input { font: inherit; color: inherit; }
   pointer-events: none;
   z-index: 9;
 }
+.confetti canvas { display: block; }
 .confetti i {
   position: absolute;
   top: -6vh;

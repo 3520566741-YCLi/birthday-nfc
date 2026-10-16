@@ -218,7 +218,7 @@
       // Adaptive legibility: where the colour behind a card's interior turns
       // dark, lift it just enough to keep text contrast; bright areas are untouched.
       float lin = dot(pow(max(colour, 0.), vec3(2.2)), vec3(.2126, .7152, .0722));
-      colour = mix(colour, vec3(1.), inner * clamp((.50 - lin) / (1. - lin), 0., 1.));
+      colour = mix(colour, vec3(1.), inner * clamp((.54 - lin) / (1. - lin), 0., 1.));
 
       colour += glow;
       colour += (hash(gl_FragCoord.xy + u_seed) - .5) / 255.;

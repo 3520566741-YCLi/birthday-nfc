@@ -395,31 +395,119 @@ const CONFIG = {
     mountGallery();
   }
 
-  /* --- confetti ---------------------------------------------------------- */
+  /* --- confetti: four corner cannons with paper bits and streamers ------ */
   function celebrate() {
     if (!CONFIG.confetti || !motionOK()) return;
     var layer = $("#confetti");
-    if (!layer) return;
+    if (!layer || !layer.appendChild) return;
 
-    var colors = ["#b7a4ff", "#d4a6ff", "#ffb0c8", "#ffa8a8", "#ffd3b4", "#fff2f0"];
-    var count = CONFIG.confettiCount || 30;
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext && canvas.getContext("2d");
+    if (!ctx) return;
+    layer.textContent = "";
+    layer.appendChild(canvas);
 
-    for (var i = 0; i < count; i++) {
-      var bit = document.createElement("i");
-      var size = 6 + Math.random() * 7;
-      bit.style.left = (Math.random() * 100).toFixed(2) + "%";
-      bit.style.width = size.toFixed(1) + "px";
-      bit.style.height = (size * (Math.random() < 0.4 ? 0.45 : 1)).toFixed(1) + "px";
-      bit.style.background = colors[i % colors.length];
-      bit.style.opacity = (0.65 + Math.random() * 0.35).toFixed(2);
-      bit.style.setProperty("--drift", ((Math.random() - 0.5) * 120).toFixed(0) + "px");
-      bit.style.setProperty("--spin", (360 + Math.random() * 720).toFixed(0) + "deg");
-      bit.style.animationDuration = (2.6 + Math.random() * 2.1).toFixed(2) + "s";
-      bit.style.animationDelay = (Math.random() * 0.5).toFixed(2) + "s";
-      layer.appendChild(bit);
+    var colors = ["#8a6dff", "#b46cff", "#ff5e9a", "#ff7a7a", "#ffa65c", "#ffcf4d", "#ffffff"];
+    var w = window.innerWidth, h = window.innerHeight;
+    var ratio = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(w * ratio);
+    canvas.height = Math.round(h * ratio);
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    ctx.scale(ratio, ratio);
+
+    var scale = Math.max(0.8, Math.min(w, h) / 420);
+    var perCorner = Math.max(8, Math.round((CONFIG.confettiCount || 34) * 0.7));
+    var streamersPerCorner = 6;
+    var corners = [[0, 0], [w, 0], [0, h], [w, h]];
+    var pieces = [];
+
+    corners.forEach(function (c, k) {
+      var tx = w / 2, ty = h * 0.42;                               // aim at the middle of the card
+      var aim = Math.atan2(ty - c[1], tx - c[0]);
+      var reach = Math.hypot(tx - c[0], ty - c[1]);
+      for (var i = 0; i < perCorner + streamersPerCorner; i++) {
+        var streamer = i < streamersPerCorner;
+        var drag = streamer ? 0.945 : 0.935;
+        var angle = aim + (Math.random() - 0.5) * 0.75;
+        // With drag d, a launch speed v travels about v / (1 - d): pick v to land near the middle.
+        var speed = reach * (1 - drag) * (0.7 + Math.random() * 0.45);
+        pieces.push({
+          x: c[0], y: c[1],
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          drag: drag,
+          gravity: (streamer ? 0.05 : 0.08) * scale,
+          delay: Math.random() * 200 + k * 35,
+          color: colors[(i + k) % colors.length],
+          streamer: streamer,
+          size: streamer ? 3 + Math.random() * 1.5 : 5 + Math.random() * 6,
+          spin: Math.random() * Math.PI * 2,
+          spinRate: (Math.random() - 0.5) * 0.3,
+          phase: Math.random() * Math.PI * 2,
+          trail: [],
+        });
+      }
+    });
+
+    var started = performance.now(), last = started, LIFE = 4600;
+
+    function step() {
+      var now = performance.now();               // one clock for the whole burst
+      // Advance physics by real elapsed time (in 60 fps ticks), so a slow
+      // frame rate makes the burst choppier but never slower or shorter.
+      var ticks = Math.min(Math.round(Math.max(now - last, 0) / 16.67), 8) || 1;
+      last = now;
+      var age = now - started;
+      var fade = age > LIFE - 1300 ? Math.max(0, (LIFE - age) / 1300) : 1;
+      ctx.clearRect(0, 0, w, h);
+
+      pieces.forEach(function (p) {
+        if (age < p.delay) return;
+        for (var n = 0; n < ticks; n++) {
+          p.vx *= p.drag;
+          p.vy = p.vy * p.drag + p.gravity;
+          p.x += p.vx + Math.sin(age / 300 + p.phase) * 0.35;
+          p.y += p.vy;
+          p.spin += p.spinRate;
+          if (p.streamer) {                       // trail per physics tick: same ribbon length at any frame rate
+            p.trail.unshift([p.x, p.y]);
+            if (p.trail.length > 14) p.trail.pop();
+          }
+        }
+        ctx.globalAlpha = fade * (p.streamer ? 0.85 : 1);
+
+        if (p.streamer) {
+          if (p.trail.length < 2) return;
+          ctx.strokeStyle = p.color;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.lineWidth = p.size;
+          ctx.beginPath();
+          for (var j = 0; j < p.trail.length; j++) {
+            var a = p.trail[j];
+            var b = p.trail[Math.min(j + 1, p.trail.length - 1)];
+            var nx = -(b[1] - a[1]), ny = b[0] - a[0];
+            var len = Math.hypot(nx, ny) || 1;
+            var curl = Math.sin(j * 0.9 - age / 110 + p.phase) * 6;   // flutter
+            var px = a[0] + nx / len * curl, py = a[1] + ny / len * curl;
+            if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        } else {
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.spin);
+          ctx.scale(1, Math.cos(age / 120 + p.phase));                // paper flipping
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size * 0.3, p.size, p.size * 0.6);
+          ctx.restore();
+        }
+      });
+
+      if (age < LIFE) window.requestAnimationFrame(step);
+      else layer.textContent = "";
     }
-
-    window.setTimeout(function () { layer.textContent = ""; }, 6000);
+    window.requestAnimationFrame(step);
   }
 
   /* --- unlock ------------------------------------------------------------ */
