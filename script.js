@@ -37,7 +37,7 @@ const CONFIG = {
   /* --- 4. The gift text -------------------------------------------------- */
   gift: {
     title: "Happy Birthday 🎂",     // {name} is replaced with recipientName
-    subtitle: "You made it. Here is what I wanted to say.",
+    subtitle: "",                   // optional line under the headline (empty = hidden)
   },
 
   /* Write paragraphs as separate strings. They render as <p> tags. */

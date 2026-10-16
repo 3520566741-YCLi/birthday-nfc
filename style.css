@@ -363,6 +363,8 @@ button, input { font: inherit; color: inherit; }
   text-wrap: balance;
 }
 
+.gift__sub:empty { display: none; }
+
 .gift__head,
 .photo,
 .letter,
