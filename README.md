@@ -22,12 +22,22 @@ glass.js      animated colour field and refracting glass card (WebGL)
 assets/       your photos / audio / video (currently empty)
 ```
 
-The visual layer is a web interpretation of clear Liquid Glass, not Apple's native
-material. It uses a local WebGL shader for the moving colours and rounded glass
-lens, with CSS translucency as a fallback. Rendering is capped at 30 fps and 1.5x
-pixel density and pauses while the page is hidden. Reduced-motion preferences stop
-the background animation; reduced-transparency or increased-contrast preferences
-use opaque cards. No external assets or libraries are loaded.
+The visual layer is a web interpretation of Apple's clear Liquid Glass look, drawn
+by this page's own WebGL shader — it does not use Apple's native material. `glass.js`
+renders in two passes: a slow, flowing colour field (blue, violet, pink, mint, with a
+warm peach glow that rises after unlocking) is painted into a small offscreen
+texture, then every element marked `data-glass` (the card, the code field, the
+buttons) bends that texture like a thick rounded lens — rim refraction, slight
+magnification, a faint colour fringe, edge highlights, a thickness shade and a soft
+card shadow. Each lens follows its element's live position and opacity, so the glass
+moves and fades with the CSS animations. Inside cards, dark passages of the
+background are lifted just enough to keep text at WCAG AA contrast.
+
+Cost controls: 30 fps when idle (full rate only during scrolling and animations),
+≤1.5× pixel density with a total pixel budget, rendering pauses while the page is
+hidden. Without WebGL the same surfaces fall back to CSS backdrop blur. Reduced
+motion freezes the field; reduced transparency, increased contrast and forced
+colours use opaque cards. No external assets or libraries are loaded.
 
 Check its lifecycle and fallback behavior with `node tests/glass.test.js`.
 

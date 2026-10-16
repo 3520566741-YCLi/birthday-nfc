@@ -401,7 +401,7 @@ const CONFIG = {
     var layer = $("#confetti");
     if (!layer) return;
 
-    var colors = ["#e8978f", "#f2c39b", "#d9a7bd", "#e9d29b", "#c98d86", "#f6e0d2"];
+    var colors = ["#9db7ff", "#b9a3ff", "#ffb0d4", "#93e2cc", "#ffd3a8", "#fff4e6"];
     var count = CONFIG.confettiCount || 30;
 
     for (var i = 0; i < count; i++) {
