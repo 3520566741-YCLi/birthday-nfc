@@ -18,8 +18,18 @@ page's own CSS and JS.
 index.html    structure
 style.css     all styling (mobile first, iPhone Safari)
 script.js     all logic + the single CONFIG block you edit
+glass.js      animated colour field and refracting glass card (WebGL)
 assets/       your photos / audio / video (currently empty)
 ```
+
+The visual layer is a web interpretation of clear Liquid Glass, not Apple's native
+material. It uses a local WebGL shader for the moving colours and rounded glass
+lens, with CSS translucency as a fallback. Rendering is capped at 30 fps and 1.5x
+pixel density and pauses while the page is hidden. Reduced-motion preferences stop
+the background animation; reduced-transparency or increased-contrast preferences
+use opaque cards. No external assets or libraries are loaded.
+
+Check its lifecycle and fallback behavior with `node tests/glass.test.js`.
 
 ## 2. Configure it — one place only
 
@@ -199,3 +209,4 @@ has no enforcement power. **Archiving** the repository in Settings is the strong
 thing GitHub offers — it makes the repository read-only, so you must unarchive before
 you can delete it — but it also blocks future pushes, so do that only once you are
 finished editing the birthday message.
+
