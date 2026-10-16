@@ -791,7 +791,7 @@ const CONFIG = {
     var s = 1, x0 = 0, yIn = 0, yOut = 0;
     var p = 0;                        // 0 = sealed, 0.5 = flap fully open, 1 = letter fully out
     var drag = null, frame = 0, openedSound = false, slideSound = false;
-    var RANGE = 260;                  // px of swipe for the whole 0 → 1
+    var RANGE = Math.max(220, Math.min(window.innerHeight * 0.34, 340));   // swipe length for 0 → 1
 
     stage.hidden = false;
     if (motionOK()) stage.classList.add("is-entering");
@@ -891,7 +891,7 @@ const CONFIG = {
       buildFold();
       state = "dragging";
       drag = { y0: e.clientY, p0: p, samples: [[e.timeStamp, e.clientY]] };
-      try { stage.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      try { (e.target.setPointerCapture ? e.target : stage).setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     }
 
     function onMove(e) {
@@ -925,7 +925,8 @@ const CONFIG = {
       if (!motionOK()) {
         stage.hidden = true; gift.style.visibility = "";
         if (fold && fold.parentNode) fold.parentNode.removeChild(fold);
-        sfx.open(); revealGift(true); state = "done"; return;
+        sfx.open(); revealGift(true); state = "done";
+        stage.dispatchEvent(new Event("envelope:done")); return;
       }
       var flick = Math.min(Math.max(velocity || 0, 0), 3);
       animateTo(1, Math.max(220, (1 - p) * (900 - flick * 180)), takeOut);
@@ -958,20 +959,45 @@ const CONFIG = {
           stage.hidden = true;
           if (fold.parentNode) fold.parentNode.removeChild(fold);
           state = "done";
+          stage.dispatchEvent(new Event("envelope:done"));
           revealGift(true, { already: true });
         };
       };
     }
 
-    button.addEventListener("click", function () { if (state === "idle") { sfx.wake(); finish(0); } });
-    stage.addEventListener("pointerdown", function (e) { if (e.target.closest && e.target.closest("#envelopeBtn")) return; onDown(e); });
-    stage.addEventListener("pointermove", onMove);
-    stage.addEventListener("pointerup", onUp);
-    stage.addEventListener("pointercancel", function () {
+    /* The whole screen is the swipe surface while the envelope is up, and the
+       page must not scroll or bounce underneath it (iOS would steal the swipe). */
+    var root = document.documentElement;
+    root.classList.add("is-envelope");
+    function blockScroll(e) { if (!stage.hidden) e.preventDefault(); }
+    document.addEventListener("touchmove", blockScroll, { passive: false });
+
+    function down(e) {
+      if (stage.hidden) return;
+      if (e.target.closest && e.target.closest("#envelopeBtn")) return;
+      onDown(e);
+    }
+    function cancel() {
       if (!drag) return;
       drag = null; state = "closing";
       animateTo(0, 300, function () { state = "idle"; });
-    });
+    }
+    window.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", cancel);
+
+    function cleanup() {
+      root.classList.remove("is-envelope");
+      document.removeEventListener("touchmove", blockScroll, { passive: false });
+      window.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", cancel);
+    }
+    stage.addEventListener("envelope:done", cleanup);
+
+    button.addEventListener("click", function () { if (state === "idle") { sfx.wake(); finish(0); } });
   }
 
   function revealGift(animate, opts) {

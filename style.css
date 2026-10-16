@@ -706,6 +706,7 @@ button, input { font: inherit; color: inherit; }
   will-change: transform;
   pointer-events: none;
 }
+html.is-envelope, html.is-envelope body { overflow: hidden; overscroll-behavior: none; touch-action: none; }
 .envelope:not(.is-open) .fold { visibility: hidden; }   /* sealed: nothing peeks through the folds */
 .envelope__scene { cursor: grab; }
 .envelope__scene:active { cursor: grabbing; }
