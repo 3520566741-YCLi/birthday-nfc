@@ -764,30 +764,94 @@ const CONFIG = {
   }
 
   /* --- the envelope -------------------------------------------------------
-     Tap → the seal lifts and the flap opens; the letter peeks out.
-     Swipe up → the letter follows the finger out of the envelope. Let go far
-     enough (or flick) and it flies to its place on the page; otherwise it
-     springs back. A tap or the button also takes it out, so swiping is
-     never required.                                                         */
+     The letter in the envelope IS the letter page: a copy of it, folded in
+     half with the writing inside, so only blank paper shows.
+     Tap → seal lifts, flap opens, the folded letter peeks out.
+     Swipe up → it follows the finger out (resistance + rubber band).
+     Let go past halfway or flick → it flies to where the page sits and
+     unfolds; underneath, the real page is already in exactly that spot.
+     A tap or the button also takes it out, so swiping is never required. */
   function showEnvelope() {
     var stage = $("#envelope");
     var scene = $("#envelopeScene");
-    var letter = $("#envelopeLetter");
     var button = $("#envelopeBtn");
     var hint = $("#envelopeHint");
+    var gift = $("#gift");
     var state = "closed";
-    var rest = 0, full = 0, pos = 0, drag = null, slid = false;
+    var fold = null, top = null, shade = null;
+    var page = null;                 // the letter page's rect on screen
+    var s = 1, x0 = 0, yRest = 0, yIn = 0, travel = 0, y = 0;
+    var drag = null, slid = false, frame = 0;
 
     stage.hidden = false;
     if (motionOK()) stage.classList.add("is-entering");
     sfx.arrive();
     window.setTimeout(function () { button.focus({ preventScroll: true }); }, 450);
 
-    function place(y, animated) {
-      pos = y;
-      letter.style.transition = animated ? "transform .55s cubic-bezier(.22, 1.2, .36, 1)" : "none";
-      letter.style.transform = "translate3d(0," + y.toFixed(1) + "px,0)";
-      letter.style.zIndex = -y > full * 0.62 ? "8" : "";
+    function copyOfPage(offsetTop) {
+      var copy = gift.cloneNode(true);
+      copy.removeAttribute("id");
+      copy.removeAttribute("aria-labelledby");
+      copy.hidden = false;
+      copy.classList.add("fold__copy");
+      copy.setAttribute("aria-hidden", "true");
+      Array.prototype.forEach.call(copy.querySelectorAll("[id]"), function (el) { el.removeAttribute("id"); });
+      copy.style.width = page.width + "px";
+      copy.style.height = page.height + "px";
+      copy.style.top = offsetTop + "px";
+      return copy;
+    }
+
+    /* Lay the real page out (invisible) to learn its size and position,
+       then build the folded copy at that size inside the envelope. */
+    function buildFold() {
+      gift.hidden = false;
+      gift.style.visibility = "hidden";
+      window.scrollTo(0, 0);
+      page = gift.getBoundingClientRect();
+
+      fold = document.createElement("div");
+      fold.className = "fold";
+      fold.setAttribute("aria-hidden", "true");
+      fold.style.width = page.width + "px";
+      fold.style.height = page.height + "px";
+
+      var bottom = document.createElement("div");
+      bottom.className = "fold__half fold__half--bottom";
+      bottom.appendChild(copyOfPage(-page.height / 2));
+
+      top = document.createElement("div");
+      top.className = "fold__half fold__half--top";
+      var front = document.createElement("div");
+      front.className = "fold__face fold__face--front";
+      front.appendChild(copyOfPage(0));
+      shade = document.createElement("div");
+      shade.className = "fold__shade";
+      front.appendChild(shade);
+      var back = document.createElement("div");
+      back.className = "fold__face fold__face--back";
+      top.appendChild(front);
+      top.appendChild(back);
+      fold.appendChild(bottom);
+      fold.appendChild(top);
+      top.style.transform = "perspective(1600px) rotateX(-180deg)";   // folded down over the bottom half
+
+      // Fit the folded half-page inside the envelope.
+      var box = scene.getBoundingClientRect();
+      s = Math.min(box.width * 0.86 / page.width, box.height * 0.92 / (page.height / 2));
+      x0 = (box.width - page.width * s) / 2;
+      yIn = box.height * 0.06 - (page.height / 2) * s;   // y of the fold's box when tucked in
+      yRest = yIn - box.height * 0.26;                   // peeking out after opening
+      travel = (page.height / 2) * s + box.height * 0.1; // until it clears the envelope
+      scene.insertBefore(fold, scene.querySelector(".envelope__pocket"));
+      place(yIn, false);
+    }
+
+    function place(next, animated) {
+      y = next;
+      fold.style.transition = animated ? "transform .55s cubic-bezier(.22, 1.25, .36, 1)" : "none";
+      fold.style.transform = "translate3d(" + x0 + "px," + y.toFixed(2) + "px,0) scale(" + s + ")";
+      fold.style.zIndex = (yRest - y) > travel * 0.55 ? "8" : "";   // in front once it is out
     }
 
     function open() {
@@ -795,23 +859,20 @@ const CONFIG = {
       state = "opening";
       sfx.wake();
       sfx.open();
-      if (!motionOK()) { takeOut(); return; }
+      if (!motionOK()) { stage.hidden = true; revealGift(true); state = "done"; return; }
+      buildFold();
       stage.classList.add("is-open");
-      var h = scene.getBoundingClientRect().height;
-      rest = -h * 0.24;                           // how far the letter peeks out
-      full = h * 0.98;                            // distance until it clears the envelope
       window.setTimeout(function () {
-        place(rest, true);
+        place(yRest, true);
         state = "open";
         hint.textContent = fill(CONFIG.envelope.pullHint || "");
         button.setAttribute("aria-label", fill(CONFIG.envelope.pullAriaLabel || ""));
-      }, 520);
+      }, 480);
     }
 
     function onDown(e) {
-      if (state === "closed") return;             // the click handler opens it
       if (state !== "open") return;
-      drag = { y0: e.clientY, p0: pos, samples: [[e.timeStamp, e.clientY]], moved: false };
+      drag = { y0: e.clientY, from: y, target: y, samples: [[e.timeStamp, e.clientY]], moved: false };
       slid = false;
       try { stage.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       stage.classList.add("is-pulling");
@@ -820,77 +881,66 @@ const CONFIG = {
     function onMove(e) {
       if (!drag) return;
       var dy = e.clientY - drag.y0;
-      if (Math.abs(dy) > 6) drag.moved = true;
+      if (Math.abs(dy) > 5) drag.moved = true;
       if (drag.moved && !slid) { slid = true; sfx.slide(); }
-      var y = drag.p0 + dy;
-      if (y > rest) y = rest + (y - rest) * 0.25;            // resist pushing it back in
-      if (y < -full) y = -full - (-full - y) * 0.35;         // rubber band past the top
-      place(y, false);
+      var next = drag.from + dy;
+      if (next > yRest) next = yRest + (next - yRest) * 0.22;                     // resist pushing it back in
+      var lim = yRest - travel;
+      if (next < lim) next = lim - (lim - next) * 0.35;                           // rubber band past the top
+      drag.target = next;
       drag.samples.push([e.timeStamp, e.clientY]);
       if (drag.samples.length > 6) drag.samples.shift();
+      if (!frame) frame = requestAnimationFrame(function () {                      // one update per frame
+        frame = 0;
+        if (drag) place(drag.target, false);
+      });
     }
 
-    function onUp(e) {
+    function onUp() {
       if (!drag) return;
       var d = drag; drag = null;
       stage.classList.remove("is-pulling");
-      var first = d.samples[0], last = d.samples[d.samples.length - 1];
-      var v = (first[1] - last[1]) / Math.max(last[0] - first[0], 1);   // px/ms, upwards positive
-      var progress = -pos / full;
-      if (!d.moved || progress > 0.5 || v > 0.55) takeOut(v);
-      else place(rest, true);
+      var a = d.samples[0], b = d.samples[d.samples.length - 1];
+      var v = (a[1] - b[1]) / Math.max(b[0] - a[0], 1);                           // px/ms, upwards positive
+      var progress = (yRest - y) / travel;
+      if (!d.moved || progress > 0.5 || v > 0.5) takeOut(v);
+      else place(yRest, true);
     }
 
     function takeOut(velocity) {
-      if (state === "flying" || state === "done") return;
+      if (state !== "open") return;
       state = "flying";
       sfx.fly();
-      var gift = $("#gift");
-
-      if (!motionOK()) {
-        stage.hidden = true;
-        revealGift(true);
-        state = "done";
-        return;
-      }
-
-      // Measure where the letter is now and where the page will put it.
-      var from = letter.getBoundingClientRect();
-      gift.hidden = false;
-      gift.style.visibility = "hidden";
-      window.scrollTo(0, 0);
-      var to = gift.getBoundingClientRect();
-
-      var flyer = document.createElement("div");
-      flyer.className = "flyer paper envelope__letter";
-      flyer.setAttribute("aria-hidden", "true");
-      flyer.style.left = to.left + "px";
-      flyer.style.top = to.top + "px";
-      flyer.style.width = to.width + "px";
-      flyer.style.height = to.height + "px";
-      flyer.style.borderRadius = "14px";
-      document.body.appendChild(flyer);
-      letter.style.visibility = "hidden";
       stage.classList.add("is-leaving");
+      fold.style.zIndex = "8";
 
-      var sx = from.width / to.width, sy = from.height / to.height;
-      var dx = from.left - to.left, dy = from.top - to.top;
-      var lift = Math.min(Math.max(velocity || 0, 0), 2.5);   // a harder flick flies a little faster
-      var duration = 760 - lift * 90;
-      var anim = flyer.animate([
-        { transform: "translate(" + dx + "px," + dy + "px) scale(" + sx + "," + sy + ")" },
-        { transform: "translate(" + (dx * 0.35) + "px," + (dy * 0.35 - 40) + "px) scale(" + (0.55 + sx * 0.45) + "," + (0.55 + sy * 0.45) + ") rotate(-1.5deg)", offset: 0.45 },
-        { transform: "none" }
-      ], { duration: duration, easing: "cubic-bezier(.25, .8, .25, 1)", fill: "forwards" });
+      // Where the bottom half must end up: the bottom half of the real page.
+      var box = scene.getBoundingClientRect();
+      var tx = page.left - box.left, ty = page.top - box.top;
+      var from = "translate3d(" + x0 + "px," + y + "px,0) scale(" + s + ")";
+      var mid = "translate3d(" + ((x0 + tx) / 2) + "px," + (Math.min(y, ty) - 30) + "px,0) scale(" + ((s + 1) / 2) + ") rotate(-1.2deg)";
+      var to = "translate3d(" + tx + "px," + ty + "px,0) scale(1)";
+      var flick = Math.min(Math.max(velocity || 0, 0), 2.5);
+      fold.style.transition = "none";
+      var flight = fold.animate([{ transform: from }, { transform: mid, offset: 0.5 }, { transform: to }],
+        { duration: 720 - flick * 80, easing: "cubic-bezier(.3, .7, .2, 1)", fill: "forwards" });
 
-      anim.onfinish = function () {
-        gift.style.visibility = "";
-        gift.classList.add("is-entering");
-        stage.hidden = true;
-        flyer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, easing: "ease-out", fill: "forwards" })
-          .onfinish = function () { flyer.remove(); };
-        state = "done";
-        revealGift(true, { already: true });
+      flight.onfinish = function () {
+        fold.style.transform = to;
+        sfx.slide();
+        var unfold = top.animate(
+          [{ transform: "perspective(1600px) rotateX(-180deg)" },
+           { transform: "perspective(1600px) rotateX(-70deg)", offset: 0.55 },
+           { transform: "perspective(1600px) rotateX(0deg)" }],
+          { duration: 760, easing: "cubic-bezier(.45, .05, .25, 1)", fill: "forwards" });
+        shade.animate([{ opacity: 0 }, { opacity: 1, offset: 0.45 }, { opacity: 0 }], { duration: 760, fill: "forwards" });
+        unfold.onfinish = function () {
+          gift.style.visibility = "";            // the real page is right underneath, pixel for pixel
+          stage.hidden = true;
+          if (fold.parentNode) fold.parentNode.removeChild(fold);
+          state = "done";
+          revealGift(true, { already: true });
+        };
       };
     }
 
@@ -902,7 +952,7 @@ const CONFIG = {
     stage.addEventListener("pointerdown", onDown);
     stage.addEventListener("pointermove", onMove);
     stage.addEventListener("pointerup", onUp);
-    stage.addEventListener("pointercancel", function () { if (drag) { drag = null; place(rest, true); } });
+    stage.addEventListener("pointercancel", function () { if (drag) { drag = null; place(yRest, true); } });
   }
 
   function revealGift(animate, opts) {

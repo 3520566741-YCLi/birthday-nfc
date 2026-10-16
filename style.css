@@ -584,40 +584,17 @@ button, input { font: inherit; color: inherit; }
   -webkit-user-select: none;
 }
 .envelope.is-entering { animation: riseIn .9s var(--ease-out) both; }
-.envelope.is-leaving  { animation: envelopeAway .6s var(--ease) forwards; }
+.envelope.is-leaving .envelope__scene > :not(.fold),
+.envelope.is-leaving .envelope__btn { animation: envelopeAway .55s var(--ease) forwards; }
 .envelope__scene {
   position: relative;
-  width: min(312px, 82vw);
-  aspect-ratio: 3 / 2;
-  perspective: 1000px;
+  width: min(320px, 84vw);
+  aspect-ratio: 5 / 4;
   filter: drop-shadow(0 26px 30px rgba(90, 40, 80, .28)) drop-shadow(0 6px 10px rgba(90, 40, 80, .14));
   cursor: pointer;
 }
 .envelope__back, .envelope__pocket { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .envelope__back { z-index: 1; border-radius: 7px; }
-.envelope__letter {
-  position: absolute;
-  left: 7%; right: 7%; top: 7%; height: 84%;
-  z-index: 2;
-  border-radius: 4px;
-  background:
-    linear-gradient(90deg, transparent 18px, rgba(255, 104, 150, .45) 18px 19px, transparent 19px),
-    repeating-linear-gradient(to bottom, transparent 0 15px, rgba(110, 130, 180, .28) 15px 16px),
-    linear-gradient(180deg, #fffdf9, #fcf6ee);
-  background-position: 0 0, 0 30px, 0 0;
-  background-repeat: no-repeat, repeat, no-repeat;
-  box-shadow: 0 -2px 10px -4px rgba(90, 50, 70, .25), 0 0 0 1px rgba(160, 130, 120, .14);
-  transform: translate3d(0, 0, 0);
-  will-change: transform;
-}
-.envelope__letter-title {
-  position: absolute;
-  top: 7px; left: 0; right: 0;
-  text-align: center;
-  font-family: var(--font-script);
-  font-size: 15px;
-  color: #3b2f45;
-}
 .envelope__pocket { z-index: 3; pointer-events: none; }
 .envelope__front {
   position: absolute;
@@ -697,29 +674,74 @@ button, input { font: inherit; color: inherit; }
   opacity: 0;
 }
 
-.envelope:not(.is-open) .envelope__letter { visibility: hidden; }   /* sealed: nothing peeks through the folds */
 .envelope.is-open .envelope__seal { animation: sealOff .35s var(--ease) forwards; }
 .envelope.is-open .envelope__flap { animation: flapOpen .62s .1s cubic-bezier(.3, .7, .3, 1) forwards; }
 .envelope.is-open .envelope__arrow { opacity: .8; animation: nudgeUp 1.4s ease-in-out infinite; }
 .envelope.is-pulling .envelope__btn { opacity: .35; transition: opacity .2s; }
 
-/* The letter in flight, from the envelope to its place on the page. */
-.flyer {
-  background:                            /* same ruling as the letter page it becomes */
-    linear-gradient(90deg, transparent 31px, var(--margin-ink) 31px 32.5px, transparent 32.5px 35px, var(--margin-ink) 35px 36px, transparent 36px),
-    repeating-linear-gradient(to bottom, transparent 0 calc(var(--rule) - 1px), var(--rule-ink) calc(var(--rule) - 1px) var(--rule)),
-    linear-gradient(180deg, #fffdf9, #fdf8f1);
-  background-position: 0 0, 0 150px, 0 0;
-  background-repeat: no-repeat, repeat, no-repeat;
-  position: fixed;
-  z-index: 25;
-  margin: 0;
-  pointer-events: none;
-  transform-origin: 0 0;
-  will-change: transform, opacity;
-}
 
-.gift.is-landing { animation: none; }
+/* The folded letter: the real letter page, cloned into two halves.
+   Folded, the top half lies face down over the bottom half, so only the
+   blank back of the paper shows. It travels out of the envelope that way
+   and unfolds into place, exactly over the real page. */
+.fold {
+  position: absolute;
+  left: 0; top: 0;
+  z-index: 2;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: none;
+}
+.envelope:not(.is-open) .fold { visibility: hidden; }   /* sealed: nothing peeks through the folds */
+.fold__half {
+  position: absolute;
+  left: 0; right: 0;
+  height: 50%;
+  border-radius: 14px;
+  box-shadow: 0 18px 34px -22px rgba(90, 50, 90, .55), 0 4px 10px -6px rgba(90, 50, 90, .25);
+}
+.fold__half--bottom { top: 50%; border-top-left-radius: 0; border-top-right-radius: 0; overflow: hidden; }
+.fold__half--top {
+  top: 0;
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  box-shadow: none;
+}
+.fold__face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 14px 14px 0 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.fold__face--back {
+  transform: rotateX(180deg);
+  background: linear-gradient(180deg, #fdf8f1, #fffdf9);
+  box-shadow: inset 0 0 0 1px rgba(160, 130, 120, .12);
+}
+.fold__face--back::after {               /* the crease, now the top edge of the folded letter */
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 10px;
+  background: linear-gradient(0deg, rgba(120, 90, 90, .10), transparent);
+}
+.fold__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(60, 40, 70, .0), rgba(60, 40, 70, .22));
+  opacity: 0;
+  pointer-events: none;
+}
+.fold__copy {
+  position: absolute !important;
+  left: 0 !important; top: 0;
+  margin: 0 !important;
+  visibility: visible !important;
+}
+.fold__copy, .fold__copy * { animation: none !important; transition: none !important; }
 
 /* 7 · Confetti ------------------------------------------------------------- */
 .confetti {
