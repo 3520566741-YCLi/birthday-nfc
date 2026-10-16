@@ -89,12 +89,12 @@
     void main() {
       vec2 css = vec2(gl_FragCoord.x, u_size.y - gl_FragCoord.y) * u_viewport / u_size;
       vec2 p = (css - u_viewport * .5) / min(u_viewport.x, u_viewport.y);
-      float t = u_time * .09;
+      float t = u_time * .20;
 
       // Two layers of slow domain warping: broad swirls, then finer eddies.
       vec2 w = vec2(sin(p.y * 1.6 + t * 1.3) + .6 * sin(p.y * 2.9 - t * .9 + 1.7),
                     cos(p.x * 1.4 - t * 1.1) + .6 * cos(p.x * 2.6 + t * .8 + .4));
-      vec2 q = p + .22 * w;
+      vec2 q = p + .30 * w;
       q += .085 * vec2(sin(q.y * 4.1 - t * 1.9 + q.x), cos(q.x * 3.7 + t * 1.6 - q.y));
 
       // Pigments are averaged by weight, so overlaps blend like dye, not paint.
@@ -333,6 +333,13 @@
 
     function draw(now) {
       if (sizeDirty) measure();
+      // iOS moves fixed layers when the keyboard opens or the toolbar hides,
+      // without a resize: re-read where the canvas sits on every frame.
+      if (canvas.getBoundingClientRect) {
+        var box = canvas.getBoundingClientRect();
+        if (Math.abs(box.width - view.w) > 1 || Math.abs(box.height - view.h) > 1) { measure(); }
+        view.x = box.left; view.y = box.top;
+      }
       var still = motion.matches;
       var dt = Math.min((now - (lastDraw || now)) / 1000, 0.1);
       lastDraw = now;
@@ -405,7 +412,12 @@
     window.addEventListener("scroll", wake, { passive: true });
     // Touches and keys don't move any glass, so they don't need full-rate frames
     // (on phones that would compete with the envelope swipe for the GPU).
-    if (window.visualViewport) window.visualViewport.addEventListener("resize", resize, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", resize, { passive: true });
+      window.visualViewport.addEventListener("scroll", wake, { passive: true });
+    }
+    document.addEventListener("focusin", wake);
+    document.addEventListener("focusout", wake);
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) { cancelAnimationFrame(frame); frame = 0; }
       else { lastDraw = 0; refresh(); }

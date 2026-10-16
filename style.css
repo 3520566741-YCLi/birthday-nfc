@@ -766,7 +766,6 @@ html.is-envelope, html.is-envelope body { overflow: hidden; overscroll-behavior:
   position: absolute !important;
   left: 0 !important; top: 0;
   margin: 0 !important;
-  visibility: visible !important;
 }
 .fold__copy, .fold__copy * { animation: none !important; transition: none !important; }
 

@@ -1024,10 +1024,14 @@ const CONFIG = {
     var drag = null, frame = 0, openedSound = false, slideSound = false, moved = false;
     var RANGE = Math.max(220, Math.min(window.innerHeight * 0.34, 340));   // swipe length for 0 → 1
 
+    window.scrollTo(0, 0);
     stage.hidden = false;
     if (motionOK()) stage.classList.add("is-entering");
     sfx.arrive();
     window.setTimeout(function () { button.focus({ preventScroll: true }); }, 450);
+    /* Prepare the folded letter right away, outside any touch: doing this
+       inside the first touch made iOS cancel that touch. */
+    window.setTimeout(function () { if (state === "idle" && motionOK()) { buildFold(); render(); } }, 380);
 
     function copyOfPage(offsetTop) {
       var copy = gift.cloneNode(true);
@@ -1037,6 +1041,7 @@ const CONFIG = {
       copy.classList.add("fold__copy");
       copy.setAttribute("aria-hidden", "true");
       Array.prototype.forEach.call(copy.querySelectorAll("[id]"), function (el) { el.removeAttribute("id"); });
+      copy.style.visibility = "";                 // inherit from the fold (hidden while folded)
       copy.style.width = page.width + "px";
       copy.style.height = page.height + "px";
       copy.style.top = offsetTop + "px";
@@ -1047,7 +1052,6 @@ const CONFIG = {
       if (fold) return;
       gift.hidden = false;
       gift.style.visibility = "hidden";
-      window.scrollTo(0, 0);
       page = gift.getBoundingClientRect();
 
       fold = document.createElement("div");
@@ -1058,6 +1062,7 @@ const CONFIG = {
       var bottom = document.createElement("div");
       bottom.className = "fold__half fold__half--bottom";
       bottom.appendChild(copyOfPage(-page.height / 2));
+      bottom.style.visibility = "hidden";         // folded: its writing faces the inside too
       top = document.createElement("div");
       top.className = "fold__half fold__half--top";
       var front = document.createElement("div");
@@ -1071,7 +1076,7 @@ const CONFIG = {
       front.style.visibility = "hidden";          // folded: the writing faces inwards
       top.appendChild(front);
       top.appendChild(back);
-      fold.__front = front; fold.__back = back;
+      fold.__front = front; fold.__back = back; fold.__bottom = bottom;
       fold.appendChild(bottom);
       fold.appendChild(top);
       top.style.transform = "perspective(1600px) rotateX(-180deg)";
@@ -1198,6 +1203,7 @@ const CONFIG = {
            blank back shows, after it the writing. Works the same whether or
            not the browser honours backface-visibility. */
         var front = fold.__front, back = fold.__back, t0 = performance.now(), D = 780;
+        fold.__bottom.style.visibility = "";        // the flap starts lifting off it now
         var unfold = { onfinish: null };
         (function step(now) {
           var k = Math.min((now - t0) / D, 1);
