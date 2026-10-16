@@ -369,9 +369,19 @@
 
     function animating() {
       return now() < busyUntil || Math.abs((gift && !gift.hidden ? 1 : 0) - warm) > 0.004 ||
-             (document.getAnimations ? document.getAnimations().length > 0 : false);
+             finiteAnimationRunning();
     }
     function now() { return performance.now(); }
+    // Entrance and exit animations move the cards, so render at full rate
+    // while they run. Endless decorations (the balloons) don't move any
+    // glass, so they must not keep the GPU busy.
+    function finiteAnimationRunning() {
+      if (!document.getAnimations) return false;
+      return document.getAnimations().some(function (a) {
+        var timing = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+        return a.playState === "running" && timing && timing.iterations !== Infinity;
+      });
+    }
 
     function render(time) {
       frame = 0;

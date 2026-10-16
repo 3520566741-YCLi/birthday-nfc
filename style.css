@@ -520,6 +520,12 @@ button, input { font: inherit; color: inherit; }
   font-size: 20px;
   opacity: .85;
 }
+.balloons { margin-top: 14px; opacity: 1; line-height: 0; }
+.balloons svg { display: inline-block; max-width: 100%; height: auto; overflow: visible; }
+.balloon { transform-box: fill-box; transform-origin: 50% 100%; animation: bob 5.5s ease-in-out infinite; }
+.balloon--2 { animation-duration: 6.4s; animation-delay: -2.1s; }
+.balloon--3 { animation-duration: 5.1s; animation-delay: -3.7s; }
+.balloon__string { fill: none; stroke: rgba(70, 60, 110, .35); stroke-width: 1; stroke-linecap: round; }
 
 /* 7 · Confetti ------------------------------------------------------------- */
 .confetti {
@@ -551,6 +557,10 @@ button, input { font: inherit; color: inherit; }
 @keyframes fadeOut {
   from { opacity: 1; transform: none; }
   to   { opacity: 0; transform: translateY(-10px) scale(.985); }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-4px) rotate(2deg); }
 }
 @keyframes nudge {
   0%, 100% { transform: translateX(0); }
