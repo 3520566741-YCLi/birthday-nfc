@@ -360,12 +360,14 @@ button, input { font: inherit; color: inherit; }
 }
 
 .gift__sub {
-  margin: 10px auto 0;
-  max-width: 22em;
-  font-size: 15px;
+  margin: 4px auto 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 10.5px;
   line-height: 1.6;
-  color: var(--ink-soft);
-  text-wrap: balance;
+  letter-spacing: .34em;
+  text-indent: .34em;                    /* keep the spaced caps optically centred */
+  color: #9a5f72;
+  opacity: .8;
 }
 
 .gift__sub:empty { display: none; }
