@@ -48,6 +48,10 @@ It has no Chinese glyphs. The letter uses Ma Shan Zheng and the signature Zhi Ma
 
 Check its lifecycle and fallback behavior with `node tests/glass.test.js`.
 
+After the right code an envelope appears: tap to open it, then swipe the letter
+up out of it (a tap or the button takes it out too). The confetti and music box
+play when the letter lands. `CONFIG.envelope.enabled: false` skips the envelope.
+
 ## 2. Configure it — one place only
 
 Open `script.js`. The very first thing in the file is a `CONFIG` object. Everything you

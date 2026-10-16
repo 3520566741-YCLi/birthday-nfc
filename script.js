@@ -34,6 +34,15 @@ const CONFIG = {
     wrongMessage: "Hmm… 再想想你的生日 😌",
   },
 
+  /* --- 3b. Envelope shown between the lock screen and the letter ---------- */
+  envelope: {
+    enabled: true,                  // false = go straight to the letter
+    hint: "轻点信封打开",
+    pullHint: "向上滑动，取出信纸",
+    ariaLabel: "打开信封",
+    pullAriaLabel: "取出信纸",
+  },
+
   /* --- 4. The gift text -------------------------------------------------- */
   gift: {
     title: "Happy Birthday 🎂",     // {name} is replaced with recipientName
@@ -526,6 +535,58 @@ const CONFIG = {
       });
     }
 
+    function sweep(c, dest, t, dur, from, to, type, peak, q) {
+      var src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = noiseBuffer(c);
+      src.loop = true;
+      f.type = type;
+      f.Q.value = q || 0.8;
+      f.frequency.setValueAtTime(from, t);
+      f.frequency.exponentialRampToValueAtTime(to, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + dur * 0.6);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(dest);
+      src.start(t); src.stop(t + dur + 0.05);
+    }
+
+    function arriveVoice(c, dest, t) {             // the envelope slides in
+      sweep(c, dest, t, 0.45, 300, 1400, "bandpass", 0.10, 0.7);
+      tine(c, dest, 1318.5, t + 0.32, 0.035, 0.6);
+    }
+
+    function openVoice(c, dest, t) {               // seal lifts, flap opens, paper slides
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(520, t);
+      o.frequency.exponentialRampToValueAtTime(260, t + 0.06);
+      envelope(c, g, t, 0.16, 0.002, 0.08);
+      o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.12);
+      sweep(c, dest, t + 0.05, 0.32, 1200, 3800, "bandpass", 0.12, 1.2);   // flap
+      sweep(c, dest, t + 0.38, 0.55, 2200, 5200, "bandpass", 0.07, 2.0);   // paper
+    }
+
+    function diveVoice(c, dest, t) {               // into the envelope, towards the light
+      sweep(c, dest, t, 1.1, 260, 7000, "lowpass", 0.20, 0.9);
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(440, t);
+      o.frequency.exponentialRampToValueAtTime(1760, t + 1.0);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.035, t + 0.8);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.15);
+      o.connect(g); g.connect(dest); o.start(t); o.stop(t + 1.2);
+    }
+
+    function slideVoice(c, dest, t) {              // paper sliding out of the envelope
+      sweep(c, dest, t, 0.42, 900, 2600, "bandpass", 0.09, 1.4);
+    }
+
+    function flyVoice(c, dest, t) {                // the letter lifts towards you
+      sweep(c, dest, t, 0.55, 500, 4200, "bandpass", 0.10, 0.8);
+      tine(c, dest, 1567.98, t + 0.42, 0.03, 0.7);
+    }
+
     function play(voice, extra) {
       var c = ensure();
       if (!c) return;
@@ -542,6 +603,11 @@ const CONFIG = {
         play(tapVoice);
       },
       wrong: function () { play(wrongVoice); },
+      arrive: function () { play(arriveVoice); },
+      open: function () { play(openVoice); },
+      dive: function () { play(diveVoice); },
+      slide: function () { play(slideVoice); },
+      fly: function () { play(flyVoice); },
       celebrate: function () {
         var c = ensure();
         if (!c) return;
@@ -554,7 +620,7 @@ const CONFIG = {
         } catch (e) { /* ignore */ }
       },
       // for rendering a preview file; not used by the page
-      voices: { tap: tapVoice, wrong: wrongVoice, pop: popVoice, sparkle: sparkleVoice, chime: chimeVoice },
+      voices: { tap: tapVoice, wrong: wrongVoice, pop: popVoice, sparkle: sparkleVoice, chime: chimeVoice, arrive: arriveVoice, open: openVoice, dive: diveVoice },
     };
   })();
 
@@ -680,12 +746,7 @@ const CONFIG = {
     if (unlocked) return;
     unlocked = true;
     var animate = !options || options.animate !== false;
-
     var gate = $("#gate");
-    var gift = $("#gift");
-
-    gift.hidden = false;
-    if (animate && motionOK()) gift.classList.add("is-entering");
 
     if (animate && motionOK()) {
       gate.classList.add("is-leaving");
@@ -693,9 +754,164 @@ const CONFIG = {
     } else {
       gate.hidden = true;
     }
+    if (animate && CONFIG.rememberUnlock) storageSet(STORAGE_KEY, "1");
+
+    if (animate && CONFIG.envelope && CONFIG.envelope.enabled !== false && $("#envelope")) {
+      window.setTimeout(showEnvelope, motionOK() ? 260 : 0);
+    } else {
+      revealGift(animate);
+    }
+  }
+
+  /* --- the envelope -------------------------------------------------------
+     Tap → the seal lifts and the flap opens; the letter peeks out.
+     Swipe up → the letter follows the finger out of the envelope. Let go far
+     enough (or flick) and it flies to its place on the page; otherwise it
+     springs back. A tap or the button also takes it out, so swiping is
+     never required.                                                         */
+  function showEnvelope() {
+    var stage = $("#envelope");
+    var scene = $("#envelopeScene");
+    var letter = $("#envelopeLetter");
+    var button = $("#envelopeBtn");
+    var hint = $("#envelopeHint");
+    var state = "closed";
+    var rest = 0, full = 0, pos = 0, drag = null, slid = false;
+
+    stage.hidden = false;
+    if (motionOK()) stage.classList.add("is-entering");
+    sfx.arrive();
+    window.setTimeout(function () { button.focus({ preventScroll: true }); }, 450);
+
+    function place(y, animated) {
+      pos = y;
+      letter.style.transition = animated ? "transform .55s cubic-bezier(.22, 1.2, .36, 1)" : "none";
+      letter.style.transform = "translate3d(0," + y.toFixed(1) + "px,0)";
+      letter.style.zIndex = -y > full * 0.62 ? "8" : "";
+    }
+
+    function open() {
+      if (state !== "closed") return;
+      state = "opening";
+      sfx.wake();
+      sfx.open();
+      if (!motionOK()) { takeOut(); return; }
+      stage.classList.add("is-open");
+      var h = scene.getBoundingClientRect().height;
+      rest = -h * 0.24;                           // how far the letter peeks out
+      full = h * 0.98;                            // distance until it clears the envelope
+      window.setTimeout(function () {
+        place(rest, true);
+        state = "open";
+        hint.textContent = fill(CONFIG.envelope.pullHint || "");
+        button.setAttribute("aria-label", fill(CONFIG.envelope.pullAriaLabel || ""));
+      }, 520);
+    }
+
+    function onDown(e) {
+      if (state === "closed") return;             // the click handler opens it
+      if (state !== "open") return;
+      drag = { y0: e.clientY, p0: pos, samples: [[e.timeStamp, e.clientY]], moved: false };
+      slid = false;
+      try { stage.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      stage.classList.add("is-pulling");
+    }
+
+    function onMove(e) {
+      if (!drag) return;
+      var dy = e.clientY - drag.y0;
+      if (Math.abs(dy) > 6) drag.moved = true;
+      if (drag.moved && !slid) { slid = true; sfx.slide(); }
+      var y = drag.p0 + dy;
+      if (y > rest) y = rest + (y - rest) * 0.25;            // resist pushing it back in
+      if (y < -full) y = -full - (-full - y) * 0.35;         // rubber band past the top
+      place(y, false);
+      drag.samples.push([e.timeStamp, e.clientY]);
+      if (drag.samples.length > 6) drag.samples.shift();
+    }
+
+    function onUp(e) {
+      if (!drag) return;
+      var d = drag; drag = null;
+      stage.classList.remove("is-pulling");
+      var first = d.samples[0], last = d.samples[d.samples.length - 1];
+      var v = (first[1] - last[1]) / Math.max(last[0] - first[0], 1);   // px/ms, upwards positive
+      var progress = -pos / full;
+      if (!d.moved || progress > 0.5 || v > 0.55) takeOut(v);
+      else place(rest, true);
+    }
+
+    function takeOut(velocity) {
+      if (state === "flying" || state === "done") return;
+      state = "flying";
+      sfx.fly();
+      var gift = $("#gift");
+
+      if (!motionOK()) {
+        stage.hidden = true;
+        revealGift(true);
+        state = "done";
+        return;
+      }
+
+      // Measure where the letter is now and where the page will put it.
+      var from = letter.getBoundingClientRect();
+      gift.hidden = false;
+      gift.style.visibility = "hidden";
+      window.scrollTo(0, 0);
+      var to = gift.getBoundingClientRect();
+
+      var flyer = document.createElement("div");
+      flyer.className = "flyer paper envelope__letter";
+      flyer.setAttribute("aria-hidden", "true");
+      flyer.style.left = to.left + "px";
+      flyer.style.top = to.top + "px";
+      flyer.style.width = to.width + "px";
+      flyer.style.height = to.height + "px";
+      flyer.style.borderRadius = "14px";
+      document.body.appendChild(flyer);
+      letter.style.visibility = "hidden";
+      stage.classList.add("is-leaving");
+
+      var sx = from.width / to.width, sy = from.height / to.height;
+      var dx = from.left - to.left, dy = from.top - to.top;
+      var lift = Math.min(Math.max(velocity || 0, 0), 2.5);   // a harder flick flies a little faster
+      var duration = 760 - lift * 90;
+      var anim = flyer.animate([
+        { transform: "translate(" + dx + "px," + dy + "px) scale(" + sx + "," + sy + ")" },
+        { transform: "translate(" + (dx * 0.35) + "px," + (dy * 0.35 - 40) + "px) scale(" + (0.55 + sx * 0.45) + "," + (0.55 + sy * 0.45) + ") rotate(-1.5deg)", offset: 0.45 },
+        { transform: "none" }
+      ], { duration: duration, easing: "cubic-bezier(.25, .8, .25, 1)", fill: "forwards" });
+
+      anim.onfinish = function () {
+        gift.style.visibility = "";
+        gift.classList.add("is-entering");
+        stage.hidden = true;
+        flyer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, easing: "ease-out", fill: "forwards" })
+          .onfinish = function () { flyer.remove(); };
+        state = "done";
+        revealGift(true, { already: true });
+      };
+    }
+
+    scene.addEventListener("click", function () { if (state === "closed") open(); });
+    button.addEventListener("click", function () {
+      if (state === "closed") open();
+      else if (state === "open") takeOut(0);
+    });
+    stage.addEventListener("pointerdown", onDown);
+    stage.addEventListener("pointermove", onMove);
+    stage.addEventListener("pointerup", onUp);
+    stage.addEventListener("pointercancel", function () { if (drag) { drag = null; place(rest, true); } });
+  }
+
+  function revealGift(animate, opts) {
+    var gift = $("#gift");
+    var already = opts && opts.already;
+    gift.hidden = false;
+    if (animate && motionOK() && !already) gift.classList.add("is-entering");
 
     if (animate) {
-      if (CONFIG.rememberUnlock) storageSet(STORAGE_KEY, "1");
       celebrate();
       sfx.celebrate();
     }
