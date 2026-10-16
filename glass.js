@@ -89,7 +89,7 @@
     void main() {
       vec2 css = vec2(gl_FragCoord.x, u_size.y - gl_FragCoord.y) * u_viewport / u_size;
       vec2 p = (css - u_viewport * .5) / min(u_viewport.x, u_viewport.y);
-      float t = u_time * .20;
+      float t = u_time * .42;
 
       // Two layers of slow domain warping: broad swirls, then finer eddies.
       vec2 w = vec2(sin(p.y * 1.6 + t * 1.3) + .6 * sin(p.y * 2.9 - t * .9 + 1.7),
