@@ -628,12 +628,13 @@ button, input { font: inherit; color: inherit; }
 }
 .envelope__flap {
   position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 64%;
+  left: 0; right: 0; top: -.5px;         /* hinge sits exactly on the envelope's top edge */
+  height: calc(64% + .5px);
   z-index: 6;
   transform-origin: 50% 0;
-  filter: drop-shadow(0 3px 4px rgba(90, 50, 70, .18));
+  filter: drop-shadow(0 2px 3px rgba(90, 50, 70, .16));
   pointer-events: none;
+  will-change: transform;
 }
 .envelope__flap svg { display: block; width: 100%; height: 100%; }
 .envelope__seal {
@@ -674,10 +675,8 @@ button, input { font: inherit; color: inherit; }
   opacity: 0;
 }
 
-.envelope.is-open .envelope__seal { animation: sealOff .35s var(--ease) forwards; }
-.envelope.is-open .envelope__flap { animation: flapOpen .62s .1s cubic-bezier(.3, .7, .3, 1) forwards; }
-.envelope.is-open .envelope__arrow { opacity: .8; animation: nudgeUp 1.4s ease-in-out infinite; }
-.envelope.is-pulling .envelope__btn { opacity: .35; transition: opacity .2s; }
+.envelope__arrow { opacity: .8; animation: nudgeUp 1.4s ease-in-out infinite; }
+.envelope.is-open .envelope__btn { opacity: .35; transition: opacity .2s; }
 
 
 /* The folded letter: the real letter page, cloned into two halves.
@@ -693,6 +692,8 @@ button, input { font: inherit; color: inherit; }
   pointer-events: none;
 }
 .envelope:not(.is-open) .fold { visibility: hidden; }   /* sealed: nothing peeks through the folds */
+.envelope__scene { cursor: grab; }
+.envelope__scene:active { cursor: grabbing; }
 .fold__half {
   position: absolute;
   left: 0; right: 0;

@@ -37,10 +37,8 @@ const CONFIG = {
   /* --- 3b. Envelope shown between the lock screen and the letter ---------- */
   envelope: {
     enabled: true,                  // false = go straight to the letter
-    hint: "轻点信封打开",
-    pullHint: "向上滑动，取出信纸",
+    hint: "向上滑动，打开信封",
     ariaLabel: "打开信封",
-    pullAriaLabel: "取出信纸",
   },
 
   /* --- 4. The gift text -------------------------------------------------- */
@@ -587,6 +585,13 @@ const CONFIG = {
       tine(c, dest, 1567.98, t + 0.42, 0.03, 0.7);
     }
 
+    function unfoldVoice(c, dest, t) {             // a sheet of paper opening: soft crackle + swish
+      [0, 0.07, 0.15, 0.26].forEach(function (d, i) {
+        sweep(c, dest, t + d, 0.08 + i * 0.02, 3000 + i * 600, 5200, "bandpass", 0.07 - i * 0.01, 2.4);
+      });
+      sweep(c, dest, t + 0.05, 0.6, 700, 2400, "bandpass", 0.08, 0.9);
+    }
+
     function play(voice, extra) {
       var c = ensure();
       if (!c) return;
@@ -608,6 +613,7 @@ const CONFIG = {
       dive: function () { play(diveVoice); },
       slide: function () { play(slideVoice); },
       fly: function () { play(flyVoice); },
+      unfold: function () { play(unfoldVoice); },
       celebrate: function () {
         var c = ensure();
         if (!c) return;
@@ -766,22 +772,26 @@ const CONFIG = {
   /* --- the envelope -------------------------------------------------------
      The letter in the envelope IS the letter page: a copy of it, folded in
      half with the writing inside, so only blank paper shows.
-     Tap → seal lifts, flap opens, the folded letter peeks out.
-     Swipe up → it follows the finger out (resistance + rubber band).
-     Let go past halfway or flick → it flies to where the page sits and
-     unfolds; underneath, the real page is already in exactly that spot.
-     A tap or the button also takes it out, so swiping is never required. */
+
+     One gesture drives everything. Swiping up scrubs the envelope open:
+     the seal lifts and the flap swings up with the finger, then the folded
+     letter rises out. Swiping down closes it again. Let go past halfway, or
+     flick upwards, and the rest plays on its own: the letter springs out,
+     flies to where the page sits and unfolds onto the real page.
+     The button under the envelope does the same for keyboards.             */
   function showEnvelope() {
     var stage = $("#envelope");
     var scene = $("#envelopeScene");
     var button = $("#envelopeBtn");
-    var hint = $("#envelopeHint");
+    var flap = scene.querySelector(".envelope__flap");
+    var seal = scene.querySelector(".envelope__seal");
     var gift = $("#gift");
-    var state = "closed";
-    var fold = null, top = null, shade = null;
-    var page = null;                 // the letter page's rect on screen
-    var s = 1, x0 = 0, yRest = 0, yIn = 0, travel = 0, y = 0;
-    var drag = null, slid = false, frame = 0;
+    var state = "idle";              // idle → (dragging) → auto → flying → done
+    var fold = null, top = null, shade = null, page = null;
+    var s = 1, x0 = 0, yIn = 0, yOut = 0;
+    var p = 0;                        // 0 = sealed, 0.5 = flap fully open, 1 = letter fully out
+    var drag = null, frame = 0, openedSound = false, slideSound = false;
+    var RANGE = 260;                  // px of swipe for the whole 0 → 1
 
     stage.hidden = false;
     if (motionOK()) stage.classList.add("is-entering");
@@ -802,9 +812,8 @@ const CONFIG = {
       return copy;
     }
 
-    /* Lay the real page out (invisible) to learn its size and position,
-       then build the folded copy at that size inside the envelope. */
     function buildFold() {
+      if (fold) return;
       gift.hidden = false;
       gift.style.visibility = "hidden";
       window.scrollTo(0, 0);
@@ -815,11 +824,9 @@ const CONFIG = {
       fold.setAttribute("aria-hidden", "true");
       fold.style.width = page.width + "px";
       fold.style.height = page.height + "px";
-
       var bottom = document.createElement("div");
       bottom.className = "fold__half fold__half--bottom";
       bottom.appendChild(copyOfPage(-page.height / 2));
-
       top = document.createElement("div");
       top.className = "fold__half fold__half--top";
       var front = document.createElement("div");
@@ -834,108 +841,120 @@ const CONFIG = {
       top.appendChild(back);
       fold.appendChild(bottom);
       fold.appendChild(top);
-      top.style.transform = "perspective(1600px) rotateX(-180deg)";   // folded down over the bottom half
+      top.style.transform = "perspective(1600px) rotateX(-180deg)";
 
-      // Fit the folded half-page inside the envelope.
       var box = scene.getBoundingClientRect();
       s = Math.min(box.width * 0.86 / page.width, box.height * 0.92 / (page.height / 2));
       x0 = (box.width - page.width * s) / 2;
-      yIn = box.height * 0.06 - (page.height / 2) * s;   // y of the fold's box when tucked in
-      yRest = yIn - box.height * 0.26;                   // peeking out after opening
-      travel = (page.height / 2) * s + box.height * 0.1; // until it clears the envelope
+      yIn = box.height * 0.06 - (page.height / 2) * s;            // tucked in
+      yOut = -(page.height / 2) * s - box.height * 0.05;          // fully clear of the envelope
       scene.insertBefore(fold, scene.querySelector(".envelope__pocket"));
-      place(yIn, false);
     }
 
-    function place(next, animated) {
-      y = next;
-      fold.style.transition = animated ? "transform .55s cubic-bezier(.22, 1.25, .36, 1)" : "none";
-      fold.style.transform = "translate3d(" + x0 + "px," + y.toFixed(2) + "px,0) scale(" + s + ")";
-      fold.style.zIndex = (yRest - y) > travel * 0.55 ? "8" : "";   // in front once it is out
+    /* Draw the envelope at progress p (0..1). */
+    function render() {
+      var f = Math.min(p / 0.5, 1);                                  // flap phase
+      var l = Math.max((p - 0.45) / 0.55, 0);                        // letter phase
+      var angle = 180 * f;
+      flap.style.transform = "perspective(900px) rotateX(" + angle.toFixed(2) + "deg)";
+      flap.style.zIndex = angle > 90 ? "0" : "";                     // behind the letter once it is up
+      seal.style.opacity = String(Math.max(1 - f * 4, 0));
+      seal.style.transform = "translateY(" + (-8 * Math.min(f * 4, 1)) + "px) scale(" + (1 - 0.4 * Math.min(f * 4, 1)) + ")";
+      stage.classList.toggle("is-open", p > 0.02);
+      if (fold) {
+        var ease = 1 - Math.pow(1 - l, 2);
+        var y = yIn + (yOut - yIn) * ease;
+        fold.style.transform = "translate3d(" + x0 + "px," + y.toFixed(2) + "px,0) scale(" + s + ")";
+        fold.style.zIndex = l > 0.7 ? "8" : "";
+      }
+      if (p > 0.06 && !openedSound) { openedSound = true; sfx.open(); }
+      if (p < 0.02) openedSound = false;
+      if (l > 0.02 && !slideSound) { slideSound = true; sfx.slide(); }
+      if (l < 0.01) slideSound = false;
     }
 
-    function open() {
-      if (state !== "closed") return;
-      state = "opening";
-      sfx.wake();
-      sfx.open();
-      if (!motionOK()) { stage.hidden = true; revealGift(true); state = "done"; return; }
-      buildFold();
-      stage.classList.add("is-open");
-      window.setTimeout(function () {
-        place(yRest, true);
-        state = "open";
-        hint.textContent = fill(CONFIG.envelope.pullHint || "");
-        button.setAttribute("aria-label", fill(CONFIG.envelope.pullAriaLabel || ""));
-      }, 480);
+    function animateTo(target, duration, done) {
+      var from = p, t0 = performance.now();
+      (function step(now) {
+        var k = Math.min((now - t0) / duration, 1);
+        var e = target > from ? 1 - Math.pow(1 - k, 3) : 1 - Math.pow(1 - k, 2.2);
+        p = from + (target - from) * e;
+        render();
+        if (k < 1) requestAnimationFrame(step);
+        else if (done) done();
+      })(t0);
     }
 
     function onDown(e) {
-      if (state !== "open") return;
-      drag = { y0: e.clientY, from: y, target: y, samples: [[e.timeStamp, e.clientY]], moved: false };
-      slid = false;
+      if (state !== "idle") return;
+      sfx.wake();
+      buildFold();
+      state = "dragging";
+      drag = { y0: e.clientY, p0: p, samples: [[e.timeStamp, e.clientY]] };
       try { stage.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-      stage.classList.add("is-pulling");
     }
 
     function onMove(e) {
       if (!drag) return;
-      var dy = e.clientY - drag.y0;
-      if (Math.abs(dy) > 5) drag.moved = true;
-      if (drag.moved && !slid) { slid = true; sfx.slide(); }
-      var next = drag.from + dy;
-      if (next > yRest) next = yRest + (next - yRest) * 0.22;                     // resist pushing it back in
-      var lim = yRest - travel;
-      if (next < lim) next = lim - (lim - next) * 0.35;                           // rubber band past the top
-      drag.target = next;
+      var next = drag.p0 + (drag.y0 - e.clientY) / RANGE;            // up = open, down = close
+      if (next < 0) next = next * 0.15;                              // a little give below closed
+      if (next > 1) next = 1 + (next - 1) * 0.2;
+      drag.target = Math.max(Math.min(next, 1.05), -0.03);
       drag.samples.push([e.timeStamp, e.clientY]);
       if (drag.samples.length > 6) drag.samples.shift();
-      if (!frame) frame = requestAnimationFrame(function () {                      // one update per frame
+      if (!frame) frame = requestAnimationFrame(function () {
         frame = 0;
-        if (drag) place(drag.target, false);
+        if (drag && drag.target !== undefined) { p = Math.max(drag.target, 0); render(); }
       });
     }
 
     function onUp() {
       if (!drag) return;
       var d = drag; drag = null;
-      stage.classList.remove("is-pulling");
       var a = d.samples[0], b = d.samples[d.samples.length - 1];
-      var v = (a[1] - b[1]) / Math.max(b[0] - a[0], 1);                           // px/ms, upwards positive
-      var progress = (yRest - y) / travel;
-      if (!d.moved || progress > 0.5 || v > 0.5) takeOut(v);
-      else place(yRest, true);
+      var v = (a[1] - b[1]) / Math.max(b[0] - a[0], 1);              // px/ms, upwards positive
+      if (p > 0.5 || v > 0.6) finish(v);
+      else { state = "closing"; animateTo(0, 260 + p * 400, function () { state = "idle"; }); }
     }
 
-    function takeOut(velocity) {
-      if (state !== "open") return;
+    /* Past the point of no return: open fully, then out, fly, unfold. */
+    function finish(velocity) {
+      if (state === "auto" || state === "flying" || state === "done") return;
+      state = "auto";
+      buildFold();
+      if (!motionOK()) {
+        stage.hidden = true; gift.style.visibility = "";
+        if (fold && fold.parentNode) fold.parentNode.removeChild(fold);
+        sfx.open(); revealGift(true); state = "done"; return;
+      }
+      var flick = Math.min(Math.max(velocity || 0, 0), 3);
+      animateTo(1, Math.max(220, (1 - p) * (900 - flick * 180)), takeOut);
+    }
+
+    function takeOut() {
       state = "flying";
       sfx.fly();
       stage.classList.add("is-leaving");
       fold.style.zIndex = "8";
-
-      // Where the bottom half must end up: the bottom half of the real page.
       var box = scene.getBoundingClientRect();
       var tx = page.left - box.left, ty = page.top - box.top;
-      var from = "translate3d(" + x0 + "px," + y + "px,0) scale(" + s + ")";
-      var mid = "translate3d(" + ((x0 + tx) / 2) + "px," + (Math.min(y, ty) - 30) + "px,0) scale(" + ((s + 1) / 2) + ") rotate(-1.2deg)";
+      var from = fold.style.transform;
+      var yNow = parseFloat(from.split(",")[1]);
+      var mid = "translate3d(" + ((x0 + tx) / 2) + "px," + (Math.min(yNow, ty) - 36) + "px,0) scale(" + ((s + 1) / 2) + ") rotate(-1.2deg)";
       var to = "translate3d(" + tx + "px," + ty + "px,0) scale(1)";
-      var flick = Math.min(Math.max(velocity || 0, 0), 2.5);
-      fold.style.transition = "none";
-      var flight = fold.animate([{ transform: from }, { transform: mid, offset: 0.5 }, { transform: to }],
-        { duration: 720 - flick * 80, easing: "cubic-bezier(.3, .7, .2, 1)", fill: "forwards" });
-
+      var flight = fold.animate([{ transform: from }, { transform: mid, offset: 0.48 }, { transform: to }],
+        { duration: 700, easing: "cubic-bezier(.3, .7, .2, 1)", fill: "forwards" });
       flight.onfinish = function () {
         fold.style.transform = to;
-        sfx.slide();
+        sfx.unfold();
         var unfold = top.animate(
           [{ transform: "perspective(1600px) rotateX(-180deg)" },
            { transform: "perspective(1600px) rotateX(-70deg)", offset: 0.55 },
            { transform: "perspective(1600px) rotateX(0deg)" }],
-          { duration: 760, easing: "cubic-bezier(.45, .05, .25, 1)", fill: "forwards" });
-        shade.animate([{ opacity: 0 }, { opacity: 1, offset: 0.45 }, { opacity: 0 }], { duration: 760, fill: "forwards" });
+          { duration: 780, easing: "cubic-bezier(.45, .05, .25, 1)", fill: "forwards" });
+        shade.animate([{ opacity: 0 }, { opacity: 1, offset: 0.45 }, { opacity: 0 }], { duration: 780, fill: "forwards" });
         unfold.onfinish = function () {
-          gift.style.visibility = "";            // the real page is right underneath, pixel for pixel
+          gift.style.visibility = "";
           stage.hidden = true;
           if (fold.parentNode) fold.parentNode.removeChild(fold);
           state = "done";
@@ -944,15 +963,15 @@ const CONFIG = {
       };
     }
 
-    scene.addEventListener("click", function () { if (state === "closed") open(); });
-    button.addEventListener("click", function () {
-      if (state === "closed") open();
-      else if (state === "open") takeOut(0);
-    });
-    stage.addEventListener("pointerdown", onDown);
+    button.addEventListener("click", function () { if (state === "idle") { sfx.wake(); finish(0); } });
+    stage.addEventListener("pointerdown", function (e) { if (e.target.closest && e.target.closest("#envelopeBtn")) return; onDown(e); });
     stage.addEventListener("pointermove", onMove);
     stage.addEventListener("pointerup", onUp);
-    stage.addEventListener("pointercancel", function () { if (drag) { drag = null; place(yRest, true); } });
+    stage.addEventListener("pointercancel", function () {
+      if (!drag) return;
+      drag = null; state = "closing";
+      animateTo(0, 300, function () { state = "idle"; });
+    });
   }
 
   function revealGift(animate, opts) {
